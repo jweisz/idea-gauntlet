@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idea-gauntlet-backend"
+version = "0.1.0"
+description = "FastAPI backend for Idea Gauntlet"
+requires-python = ">=3.11"
+# No langgraph/chromadb here — those were the arena chat orchestration, which
+# this app does not use. Gauntlet talks to LLMs through litellm directly.
+dependencies = [
+  "fastapi>=0.135.0",
+  "google-auth>=2.49.0",
+  "httpx>=0.28.0",
+  "langchain-core>=1.2.0",
+  "langchain-litellm>=0.0.1",
+  "litellm>=1.82.0",
+  "pydantic>=2.12.0",
+  "python-jose[cryptography]>=3.5.0",
+  "pyyaml>=6.0.0",
+  "sqlalchemy>=2.0.0",
+  "psycopg[binary]>=3.2.0",
+  "uvicorn[standard]>=0.42.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4.0",
+  "pytest-asyncio>=1.0.0",
+  "ruff>=0.11.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["config.toml"]

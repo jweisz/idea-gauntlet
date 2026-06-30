@@ -1,0 +1,44 @@
+# Render blueprint for a SELF-HOST (BYO-key) Idea Gauntlet deployment.
+#
+# For the paid hosted arcade (Google sign-in, credits, Stripe, spend cap), use
+# the private idea-gauntlet-overlay repo's render.yaml instead.
+
+databases:
+  - name: idea-gauntlet-db
+    databaseName: idea_gauntlet
+    user: idea_gauntlet
+    plan: basic-256mb
+
+services:
+  - type: web
+    name: idea-gauntlet-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: idea-gauntlet-db
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend-domain
+      # Provide at least one LLM key, or enter keys in the in-app Settings modal.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: idea-gauntlet-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://your-api-domain
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

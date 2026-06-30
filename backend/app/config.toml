@@ -1,0 +1,30 @@
+# Static, checked-in configuration for the backend.
+#
+# This is for non-secret, non-per-user knobs. Secrets and per-deployment infra
+# (API keys, JWT secret, DATABASE_URL, CORS, DEPLOYMENT_MODE) stay in env vars;
+# user-editable settings (per-agent model, keys) live in the database.
+
+[branding]
+# Display name shown in the UI and on receipts. Rebrand here.
+name = "Idea Gauntlet"
+
+[gameplay]
+max_hp = 100
+min_damage = 12          # even a weak argument makes a dent
+max_damage = 40          # a devastating argument deals significant HP
+max_idea_chars = 600     # input cap on the idea
+max_attack_chars = 2000  # input cap on each battle message
+reply_word_limit = 150   # target length for an agent's battle reply
+
+# Difficulty multipliers applied after scoring.
+#   user = multiplier on damage the player deals to the boss
+#   boss = multiplier on damage the boss deals to the player
+[gameplay.difficulty.easy]
+user = 1.5
+boss = 0.75
+[gameplay.difficulty.normal]
+user = 1.2
+boss = 0.9
+[gameplay.difficulty.difficult]
+user = 1.0
+boss = 1.0
