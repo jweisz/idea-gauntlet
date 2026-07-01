@@ -11,7 +11,7 @@ enough, and you advance. Run out of HP, and the gauntlet ends.
 It's part debate trainer, part roguelike. The better your reasoning, the harder
 you hit.
 
----
+______________________________________________________________________
 
 ## How it works
 
