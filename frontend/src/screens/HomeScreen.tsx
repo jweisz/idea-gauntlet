@@ -222,11 +222,9 @@ export default function HomeScreen() {
                     className="pixel-btn"
                     disabled={loadingId === s.id}
                     style={{
-                      flex: revealed ? "0 0 auto" : "1 1 auto",
-                      width: revealed ? 150 : undefined,
+                      flex: "1 1 auto",
                       minWidth: 0,
                       overflow: "hidden",
-                      transition: "width 150ms ease",
                       fontSize: "0.75rem",
                       padding: "12px 14px",
                       textAlign: "left",
@@ -269,19 +267,6 @@ export default function HomeScreen() {
                   {revealed && (
                     <>
                       <button
-                        className="pixel-btn pixel-btn--green"
-                        disabled={loadingId === s.id}
-                        title="Resume"
-                        style={{
-                          flexShrink: 0,
-                          fontSize: "1rem",
-                          padding: "12px 16px",
-                        }}
-                        onClick={() => openSession(s)}
-                      >
-                        <span className="pixel-arrow">▶</span>
-                      </button>
-                      <button
                         className="pixel-btn pixel-btn--red"
                         disabled={loadingId === s.id}
                         title="Delete"
@@ -296,6 +281,19 @@ export default function HomeScreen() {
                         }}
                       >
                         🗑
+                      </button>
+                      <button
+                        className="pixel-btn pixel-btn--green"
+                        disabled={loadingId === s.id}
+                        title="Resume"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: "1rem",
+                          padding: "12px 16px",
+                        }}
+                        onClick={() => openSession(s)}
+                      >
+                        <span className="pixel-arrow">▶</span>
                       </button>
                     </>
                   )}
