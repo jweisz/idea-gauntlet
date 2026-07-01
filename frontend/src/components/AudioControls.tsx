@@ -20,6 +20,10 @@ export default function AudioControls() {
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
+    // Fixed height so all three buttons match regardless of icon glyph
+    // metrics — color emoji (🎵/🔊) render taller than a plain "⚙" character,
+    // which otherwise leaves the Settings button visibly shorter.
+    height: 46,
     gap: 6,
     padding: "6px 10px",
     whiteSpace: "nowrap",
@@ -101,7 +105,7 @@ export default function AudioControls() {
         onClick={() => (showSettings ? closeSettings() : openSettings())}
         title="Settings"
       >
-        <span>⚙</span>
+        <span style={{ fontSize: "1.3em" }}>⚙️</span>
         <span
           style={{
             fontSize: "0.65rem",
