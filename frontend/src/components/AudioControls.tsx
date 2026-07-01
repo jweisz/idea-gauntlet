@@ -1,11 +1,15 @@
-import { useState } from "react";
 import { useAudioStore } from "../store/audioStore";
+import { useUIStore } from "../store/uiStore";
 import { getAudioContext } from "../hooks/useChiptune";
 import SettingsModal from "./SettingsModal";
 
 export default function AudioControls() {
   const { musicEnabled, sfxEnabled, toggleMusic, toggleSfx } = useAudioStore();
-  const [showSettings, setShowSettings] = useState(false);
+  const {
+    settingsOpen: showSettings,
+    openSettings,
+    closeSettings,
+  } = useUIStore();
 
   const base: React.CSSProperties = {
     background: "var(--nes-darkgray)",
@@ -94,7 +98,7 @@ export default function AudioControls() {
               }
             : base
         }
-        onClick={() => setShowSettings((s) => !s)}
+        onClick={() => (showSettings ? closeSettings() : openSettings())}
         title="Settings"
       >
         <span>⚙</span>
@@ -108,7 +112,7 @@ export default function AudioControls() {
         </span>
       </button>
 
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={closeSettings} />}
     </div>
   );
 }

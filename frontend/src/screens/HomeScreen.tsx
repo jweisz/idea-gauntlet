@@ -10,6 +10,7 @@ import { useGameStore } from "../store/gameStore";
 import { useChiptune } from "../hooks/useChiptune";
 import { useGameName } from "../store/configStore";
 import CreditsBadge from "../components/CreditsBadge";
+import LlmSetupBanner from "../components/LlmSetupBanner";
 
 /**
  * Your Games — the landing screen.
@@ -82,6 +83,8 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
+      <LlmSetupBanner />
+
       {billingEnabled && (
         <div style={{ alignSelf: "flex-end" }}>
           <CreditsBadge />
@@ -111,7 +114,7 @@ export default function HomeScreen() {
         style={{ fontSize: "1rem", padding: "18px 48px" }}
         onClick={startNew}
       >
-        {acceptingNewPlayers ? "＋ START NEW GAME" : "🔔 JOIN WAITLIST"}
+        {acceptingNewPlayers ? "＋ NEW GAME" : "🔔 JOIN WAITLIST"}
       </button>
 
       {leaderboardEnabled && (

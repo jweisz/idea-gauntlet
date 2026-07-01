@@ -18,9 +18,21 @@ run = "npm run format"
 description = "Check formatting with prettier (no writes)"
 run = "npm run format:check"
 
+[tasks.mdformat]
+description = "Auto-format markdown with prettier"
+run = "npm run mdformat"
+
+[tasks.mdformat-check]
+description = "Check markdown formatting with prettier (no writes)"
+run = "npm run mdformat:check"
+
 [tasks.lint]
 description = "Lint with eslint"
 run = "npm run lint"
+
+[tasks.lint-fix]
+description = "Lint with eslint and apply safe fixes"
+run = "npm run lint:fix"
 
 [tasks.typecheck]
 description = "Type-check with tsc (no emit)"

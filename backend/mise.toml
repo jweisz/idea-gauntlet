@@ -33,3 +33,11 @@ run = "uv run --extra dev mypy"
 [tasks.test]
 description = "Run the test suite with pytest"
 run = "uv run --extra dev pytest"
+
+[tasks.mdformat]
+description = "Auto-format markdown (agent presets + repo README) with mdformat"
+run = "uv run --extra dev mdformat ../README.md app"
+
+[tasks.mdformat-check]
+description = "Check markdown formatting with mdformat (no writes)"
+run = "uv run --extra dev mdformat --check ../README.md app"

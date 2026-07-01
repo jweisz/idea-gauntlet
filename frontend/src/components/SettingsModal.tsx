@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   settingsApi,
   providersApi,
@@ -42,19 +42,33 @@ interface KeyInputProps {
   label: string;
   placeholder: string;
   isSet: boolean;
-  value: string;
-  onChange: (v: string) => void;
+  error?: string | null;
+  onCommit: (value: string) => Promise<void>;
+  onClear: () => Promise<void>;
 }
 
 function KeyInput({
   label,
   placeholder,
   isSet,
-  value,
-  onChange,
+  error,
+  onCommit,
+  onClear,
 }: KeyInputProps) {
+  const [draft, setDraft] = useState("");
   const [focused, setFocused] = useState(false);
   const [show, setShow] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const commit = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    setDraft("");
+    await onCommit(trimmed);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -68,14 +82,14 @@ function KeyInput({
         <label style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}>
           {label}
         </label>
-        {isSet && !value && (
+        {saved && (
           <span style={{ fontSize: "0.5rem", color: "var(--nes-green)" }}>
-            ✓ configured
+            ✓ saved
           </span>
         )}
-        {value && (
-          <span style={{ fontSize: "0.5rem", color: "var(--nes-yellow)" }}>
-            ● will update
+        {!saved && isSet && (
+          <span style={{ fontSize: "0.5rem", color: "var(--nes-green)" }}>
+            ✓ configured
           </span>
         )}
       </div>
@@ -83,15 +97,47 @@ function KeyInput({
         <input
           type={show ? "text" : "password"}
           style={focused ? inputFocusStyle : inputStyle}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={() => {
+            setFocused(false);
+            void commit();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
           placeholder={
             isSet ? "● ● ● ● ● ● leave blank to keep existing" : placeholder
           }
           autoComplete="off"
         />
+        {isSet && (
+          <button
+            type="button"
+            title="Remove this key"
+            onClick={async () => {
+              setClearing(true);
+              await onClear();
+              setClearing(false);
+            }}
+            disabled={clearing}
+            style={{
+              background: "rgba(214,40,40,0.15)",
+              border: "2px solid var(--nes-red)",
+              color: "var(--nes-red)",
+              fontFamily: "inherit",
+              fontSize: "0.6rem",
+              padding: "0 10px",
+              cursor: clearing ? "default" : "pointer",
+              opacity: clearing ? 0.5 : 1,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            🗑
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
@@ -110,6 +156,17 @@ function KeyInput({
           {show ? "HIDE" : "SHOW"}
         </button>
       </div>
+      {isSet && error && (
+        <p
+          style={{
+            fontSize: "0.5rem",
+            color: "var(--nes-red)",
+            lineHeight: 1.6,
+          }}
+        >
+          ⚠ {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -126,16 +183,17 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     google_api_key: false,
     ollama_base_url: null,
   });
-  const [keys, setKeys] = useState({
-    anthropic: "",
-    openai: "",
-    google: "",
-    ollama_url: "",
-  });
+  const [ollamaDraft, setOllamaDraft] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Set (before calling onClose) whenever the modal is being dismissed
+  // without saving (ESC / backdrop / header close), so an in-flight blur on
+  // a still-focused field doesn't sneak a commit in as it unmounts. The
+  // SAVE button does NOT set this — clicking it naturally blurs the
+  // focused field first (browser focus order), letting that edit commit
+  // normally before the modal closes.
+  const discardingRef = useRef(false);
 
   const loadData = () =>
     Promise.all([providersApi.list(), settingsApi.get(), configApi.get()])
@@ -143,7 +201,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         setProviders(p);
         setSettings(s);
         setConfig(c);
-        setKeys((k) => ({ ...k, ollama_url: s.ollama_base_url ?? "" }));
+        setOllamaDraft(s.ollama_base_url ?? "");
       })
       .catch(() => setError("Failed to load settings"))
       .finally(() => setLoading(false));
@@ -152,13 +210,19 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     void loadData();
   }, []);
 
+  const closeDiscarding = () => {
+    discardingRef.current = true;
+    onClose();
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeDiscarding();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedProvider = providers.find(
     (p) => p.provider === settings.non_agent_provider,
@@ -169,46 +233,52 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const showModels = config?.show_model_selection ?? true;
   const showKeys = config?.show_api_key_settings ?? true;
 
-  const handleProviderChange = (provider: string) => {
-    const firstModel =
-      providers.find((p) => p.provider === provider)?.models[0] ?? null;
-    setSettings((s) => ({
-      ...s,
-      non_agent_provider: provider || null,
-      non_agent_model: firstModel,
-    }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+  const patchSettings = async (patch: Record<string, string | null>) => {
+    if (discardingRef.current) return;
     try {
-      const patch: Record<string, string | null> = {};
-      if (showModels) {
-        patch.non_agent_provider = settings.non_agent_provider;
-        patch.non_agent_model = settings.non_agent_model;
-      }
-      if (keys.anthropic.trim())
-        patch.anthropic_api_key = keys.anthropic.trim();
-      if (keys.openai.trim()) patch.openai_api_key = keys.openai.trim();
-      if (keys.google.trim()) patch.google_api_key = keys.google.trim();
-      if (keys.ollama_url.trim())
-        patch.ollama_base_url = keys.ollama_url.trim();
-
       await settingsApi.update(patch);
-
-      // Re-fetch settings + providers so new keys appear in the list
-      setLoading(true);
-      setKeys({ anthropic: "", openai: "", google: "", ollama_url: "" });
-      await loadData();
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
     } catch {
       setError("Failed to save settings");
-    } finally {
-      setSaving(false);
     }
+  };
+
+  const handleProviderChange = async (provider: string) => {
+    const firstModel =
+      providers.find((p) => p.provider === provider)?.models[0] ?? null;
+    const patch = {
+      non_agent_provider: provider || null,
+      non_agent_model: firstModel,
+    };
+    setSettings((s) => ({ ...s, ...patch }));
+    await patchSettings(patch);
+  };
+
+  const handleModelChange = async (model: string) => {
+    const patch = { non_agent_model: model || null };
+    setSettings((s) => ({ ...s, ...patch }));
+    await patchSettings(patch);
+  };
+
+  const commitKey = async (
+    field: "anthropic_api_key" | "openai_api_key" | "google_api_key",
+    value: string,
+  ) => {
+    await patchSettings({ [field]: value });
+    await loadData();
+  };
+
+  const clearKey = async (
+    field: "anthropic_api_key" | "openai_api_key" | "google_api_key",
+  ) => {
+    await patchSettings({ [field]: null });
+    await loadData();
+  };
+
+  const commitOllamaUrl = async () => {
+    const trimmed = ollamaDraft.trim();
+    if (!trimmed || trimmed === (settings.ollama_base_url ?? "")) return;
+    await patchSettings({ ollama_base_url: trimmed });
+    await loadData();
   };
 
   return (
@@ -225,7 +295,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         overflowY: "auto",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) closeDiscarding();
       }}
     >
       <div
@@ -252,7 +322,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             ⚙ SETTINGS
           </h2>
           <button
-            onClick={onClose}
+            onClick={closeDiscarding}
             style={{
               background: "none",
               border: "none",
@@ -311,7 +381,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </p>
         ) : (
           <>
-            {/* Judge model — hidden in hosted mode */}
+            {/* Model — hidden in hosted mode */}
             {showModels && (
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -324,7 +394,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                       marginBottom: 4,
                     }}
                   >
-                    JUDGE MODEL
+                    MODEL
                   </div>
                   <div
                     style={{
@@ -333,7 +403,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                       lineHeight: 1.8,
                     }}
                   >
-                    Used for debate scoring and defeat analysis
+                    Used by every critic — plus debate scoring, defeat analysis,
+                    and summaries
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -348,7 +419,9 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     <select
                       style={selectStyle}
                       value={settings.non_agent_provider ?? ""}
-                      onChange={(e) => handleProviderChange(e.target.value)}
+                      onChange={(e) =>
+                        void handleProviderChange(e.target.value)
+                      }
                     >
                       <option value="">— select —</option>
                       {providers.map((p) => (
@@ -375,12 +448,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     <select
                       style={selectStyle}
                       value={settings.non_agent_model ?? ""}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          non_agent_model: e.target.value || null,
-                        }))
-                      }
+                      onChange={(e) => void handleModelChange(e.target.value)}
                       disabled={models.length === 0}
                     >
                       <option value="">— select —</option>
@@ -423,29 +491,38 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                       }}
                     >
                       Keys are stored on the backend only — never in the
-                      browser.
+                      browser. Saved instantly when you leave the field.
                     </div>
                   </div>
                   <KeyInput
                     label="ANTHROPIC"
                     placeholder="sk-ant-api03-..."
                     isSet={settings.anthropic_api_key}
-                    value={keys.anthropic}
-                    onChange={(v) => setKeys((k) => ({ ...k, anthropic: v }))}
+                    error={
+                      providers.find((p) => p.provider === "anthropic")?.error
+                    }
+                    onCommit={(v) => commitKey("anthropic_api_key", v)}
+                    onClear={() => clearKey("anthropic_api_key")}
                   />
                   <KeyInput
                     label="OPENAI"
                     placeholder="sk-proj-..."
                     isSet={settings.openai_api_key}
-                    value={keys.openai}
-                    onChange={(v) => setKeys((k) => ({ ...k, openai: v }))}
+                    error={
+                      providers.find((p) => p.provider === "openai")?.error
+                    }
+                    onCommit={(v) => commitKey("openai_api_key", v)}
+                    onClear={() => clearKey("openai_api_key")}
                   />
                   <KeyInput
                     label="GOOGLE (GEMINI)"
                     placeholder="AIzaSy..."
                     isSet={settings.google_api_key}
-                    value={keys.google}
-                    onChange={(v) => setKeys((k) => ({ ...k, google: v }))}
+                    error={
+                      providers.find((p) => p.provider === "gemini")?.error
+                    }
+                    onCommit={(v) => commitKey("google_api_key", v)}
+                    onClear={() => clearKey("google_api_key")}
                   />
                   <div
                     style={{ display: "flex", flexDirection: "column", gap: 4 }}
@@ -458,18 +535,19 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     <input
                       type="text"
                       style={inputStyle}
-                      value={keys.ollama_url}
-                      onChange={(e) =>
-                        setKeys((k) => ({ ...k, ollama_url: e.target.value }))
-                      }
-                      placeholder={
-                        settings.ollama_base_url ?? "http://localhost:11434"
-                      }
+                      value={ollamaDraft}
+                      onChange={(e) => setOllamaDraft(e.target.value)}
+                      onBlur={() => void commitOllamaUrl()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter")
+                          (e.target as HTMLInputElement).blur();
+                      }}
+                      placeholder="http://localhost:11434"
                     />
                   </div>
                 </div>
 
-                {/* Available providers */}
+                {/* Available providers — only those that actually resolved a model list */}
                 {providers.length > 0 && (
                   <div
                     style={{
@@ -490,17 +568,19 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                       AVAILABLE PROVIDERS
                     </div>
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      {providers.map((p) => (
-                        <span
-                          key={p.provider}
-                          style={{
-                            fontSize: "0.6rem",
-                            color: "var(--nes-green)",
-                          }}
-                        >
-                          ✓ {p.provider}
-                        </span>
-                      ))}
+                      {providers
+                        .filter((p) => !p.error)
+                        .map((p) => (
+                          <span
+                            key={p.provider}
+                            style={{
+                              fontSize: "0.6rem",
+                              color: "var(--nes-green)",
+                            }}
+                          >
+                            ✓ {p.provider}
+                          </span>
+                        ))}
                     </div>
                   </div>
                 )}
@@ -514,12 +594,11 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             )}
 
             <button
-              className={`pixel-btn ${saved ? "pixel-btn--green" : ""}`}
+              className="pixel-btn pixel-btn--green"
               style={{ fontSize: "0.7rem", alignSelf: "flex-end" }}
-              onClick={() => void handleSave()}
-              disabled={saving}
+              onClick={onClose}
             >
-              {saved ? "✓ SAVED" : saving ? "SAVING..." : "SAVE ►"}
+              SAVE ►
             </button>
           </>
         )}

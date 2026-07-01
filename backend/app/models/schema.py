@@ -33,7 +33,7 @@ class GlobalSettings(Base):
     anthropic_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
     google_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
     ollama_base_url: Mapped[str] = mapped_column(
-        String, default="http://host.docker.internal:11434"
+        String, default="http://localhost:11434"
     )
     # Stored as JSON string
     theme_preferences: Mapped[str | None] = mapped_column(Text, nullable=True)

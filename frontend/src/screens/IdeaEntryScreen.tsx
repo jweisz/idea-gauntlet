@@ -5,68 +5,54 @@ import { useChiptune } from "../hooks/useChiptune";
 import { useGameName } from "../store/configStore";
 
 const SAMPLE_IDEAS = [
-  "Remote work makes teams more productive",
-  "AI will eliminate more jobs than it creates",
-  "Sleep is more important than exercise for health",
-  "Social media has done more harm than good",
-  "Nuclear energy is the best path to clean power",
+  "Remote work boosts team output",
+  "AI kills more jobs than it creates",
+  "Sleep matters more than exercise",
+  "Social media harms more than helps",
+  "Nuclear is the best clean energy",
 ];
 
 export default function IdeaEntryScreen() {
   const navigate = useNavigate();
   const { blip, attack } = useChiptune();
-  const { setPendingIdea, clearSession } = useGameStore();
+  const { pendingIdea, setPendingIdea, clearSession } = useGameStore();
   const gameName = useGameName();
 
-  const [idea, setIdea] = useState("");
+  const [idea, setIdea] = useState(pendingIdea);
 
   const handleContinue = () => {
-    if (!idea.trim()) return;
+    const trimmed = idea.trim();
+    if (!trimmed) return;
     attack();
     clearSession();
-    setPendingIdea(idea.trim());
-    navigate("/choose-challengers");
+    setPendingIdea(trimmed);
+    navigate("/gatekeeper");
   };
 
   return (
     <div
       className="screen"
       style={{
-        gap: 40,
+        gap: 28,
         maxWidth: 720,
         margin: "0 auto",
         width: "100%",
-        padding: "40px 24px",
+        padding: "28px 20px",
       }}
     >
-      <button
-        className="pixel-btn"
-        style={{
-          alignSelf: "flex-start",
-          fontSize: "0.75rem",
-          padding: "8px 14px",
-        }}
-        onClick={() => {
-          blip();
-          navigate("/");
-        }}
-      >
-        ◀ YOUR GAMES
-      </button>
-
       {/* Title */}
       <div style={{ textAlign: "center" }}>
         <h1
           className="text-cyan animate-glow"
-          style={{ fontSize: "2rem", marginBottom: 16, letterSpacing: 4 }}
+          style={{ fontSize: "1.6rem", marginBottom: 10, letterSpacing: 4 }}
         >
           {gameName.toUpperCase()}
         </h1>
         <p
           style={{
-            fontSize: "0.875rem",
+            fontSize: "0.8rem",
             color: "var(--nes-gray)",
-            lineHeight: 2,
+            lineHeight: 1.6,
           }}
         >
           DEFEND YOUR IDEA AGAINST 8 CRITICS
@@ -78,8 +64,8 @@ export default function IdeaEntryScreen() {
         <label
           style={{
             display: "block",
-            fontSize: "1rem",
-            marginBottom: 12,
+            fontSize: "0.9rem",
+            marginBottom: 10,
             color: "var(--nes-yellow)",
           }}
         >
@@ -87,7 +73,7 @@ export default function IdeaEntryScreen() {
         </label>
         <textarea
           className="pixel-input"
-          rows={4}
+          rows={3}
           value={idea}
           autoFocus
           onChange={(e) => setIdea(e.target.value)}
@@ -98,7 +84,7 @@ export default function IdeaEntryScreen() {
             }
           }}
           placeholder="State your idea clearly and boldly..."
-          style={{ resize: "none", lineHeight: 2, fontSize: "1rem" }}
+          style={{ resize: "none", lineHeight: 1.6, fontSize: "0.95rem" }}
         />
       </div>
 
@@ -106,21 +92,21 @@ export default function IdeaEntryScreen() {
       <div style={{ width: "100%" }}>
         <p
           style={{
-            fontSize: "0.75rem",
+            fontSize: "0.7rem",
             color: "var(--nes-gray)",
-            marginBottom: 12,
+            marginBottom: 8,
           }}
         >
           OR TRY ONE OF THESE:
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {SAMPLE_IDEAS.map((s) => (
             <button
               key={s}
               className="pixel-btn"
               style={{
-                fontSize: "0.75rem",
-                padding: "10px 14px",
+                fontSize: "0.68rem",
+                padding: "8px 12px",
                 textAlign: "left",
               }}
               onClick={() => {
@@ -134,19 +120,47 @@ export default function IdeaEntryScreen() {
         </div>
       </div>
 
-      <button
-        className="pixel-btn pixel-btn--green"
+      {/* Bottom nav: back pinned left, forward pinned right */}
+      <div
         style={{
-          fontSize: "1rem",
-          padding: "18px 48px",
-          opacity: idea.trim() ? 1 : 0.4,
-          cursor: idea.trim() ? "pointer" : "not-allowed",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: 12,
+          width: "100%",
+          marginTop: 4,
         }}
-        onClick={handleContinue}
-        disabled={!idea.trim()}
       >
-        CHOOSE YOUR CHALLENGERS ►
-      </button>
+        <button
+          className="pixel-btn"
+          style={{
+            fontSize: "0.75rem",
+            padding: "10px 16px",
+            whiteSpace: "nowrap",
+          }}
+          onClick={() => {
+            blip();
+            navigate("/");
+          }}
+        >
+          ◀ BACK
+        </button>
+
+        <button
+          className="pixel-btn pixel-btn--green"
+          style={{
+            fontSize: "0.85rem",
+            padding: "12px 24px",
+            whiteSpace: "nowrap",
+            opacity: idea.trim() ? 1 : 0.4,
+            cursor: idea.trim() ? "pointer" : "not-allowed",
+          }}
+          onClick={handleContinue}
+          disabled={!idea.trim()}
+        >
+          FACE THE GATEKEEPER ►
+        </button>
+      </div>
     </div>
   );
 }

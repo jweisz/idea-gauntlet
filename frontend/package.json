@@ -8,8 +8,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "mdformat": "node scripts/mdformat.mjs --write",
+    "mdformat:check": "node scripts/mdformat.mjs --check",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest"

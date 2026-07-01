@@ -21,6 +21,7 @@ import { gauntlet } from "./lib/api";
 import AudioControls from "./components/AudioControls";
 import HomeScreen from "./screens/HomeScreen";
 import IdeaEntryScreen from "./screens/IdeaEntryScreen";
+import GatekeeperScreen from "./screens/GatekeeperScreen";
 import ChallengerSelectScreen from "./screens/ChallengerSelectScreen";
 import StageSelectScreen from "./screens/StageSelectScreen";
 import BossInterstitialScreen from "./screens/BossInterstitialScreen";
@@ -48,7 +49,12 @@ function AudioManager() {
 
   const autoTrackId = useMemo(() => {
     const path = location.pathname;
-    if (path === "/" || path === "/new" || path === "/choose-challengers")
+    if (
+      path === "/" ||
+      path === "/new" ||
+      path === "/gatekeeper" ||
+      path === "/choose-challengers"
+    )
       return "overworld";
     if (path === "/stage-select") return "arena";
     if (path.startsWith("/battle/")) {
@@ -126,6 +132,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/new" element={<IdeaEntryScreen />} />
+          <Route path="/gatekeeper" element={<GatekeeperScreen />} />
           <Route
             path="/choose-challengers"
             element={<ChallengerSelectScreen />}

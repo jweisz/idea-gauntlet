@@ -10,6 +10,7 @@ Routes:
 """
 
 import json
+import logging
 import random
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -29,11 +30,13 @@ from ..core.deps import (
     get_current_principal,
     require_play_credit,
     accepting_new_players,
+    GuardResult,
 )
 from ..core.usage import set_usage_context
 from ..services.gauntlet import (
     get_agent_reply,
     score_exchange,
+    check_idea,
     get_concession_message,
     get_defeat_reason,
     generate_summary,
@@ -50,6 +53,37 @@ from ..services.gauntlet import (
 # Imported as a module (not by-name) so the hosted overlay's override of
 # ``on_guard_result`` is picked up at call time.
 from ..core import deps
+
+logger = logging.getLogger(__name__)
+
+
+async def _get_agent_reply_or_502(
+    *, agent, idea, battle_messages, provider_override, model_override
+):
+    """Call get_agent_reply, turning a failure into a clear 502.
+
+    get_agent_reply has no fallback — a boss with no working model has no
+    reply to give. A bare 500 would bury that; this raises an actionable
+    error telling the player to check their API key / model settings.
+    """
+    try:
+        return await get_agent_reply(
+            agent=agent,
+            idea=idea,
+            battle_messages=battle_messages,
+            provider_override=provider_override,
+            model_override=model_override,
+        )
+    except Exception:
+        logger.warning(
+            "Agent reply LLM call failed for agent_id=%s", agent.id, exc_info=True
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=f"{agent.name}'s model is unavailable right now (no working AI "
+            "model configured for this critic). Check your API key / model "
+            "settings and try again.",
+        )
 
 
 def _attach_usage_context(
@@ -199,6 +233,16 @@ class SendMessageRequest(BaseModel):
     content: str
 
 
+class IdeaCheckRequest(BaseModel):
+    idea: str
+
+
+class IdeaCheckOut(BaseModel):
+    passed: bool
+    category: str
+    reason: str
+
+
 class StoreSummaryRequest(BaseModel):
     data: Optional[str] = None  # pre-assembled JSON string; if set, stored directly
 
@@ -233,6 +277,57 @@ def random_agents(count: int = 8, db: Session = Depends(get_db)):
         return []
     sample = random.sample(all_agents, min(count, len(all_agents)))
     return sample
+
+
+@router.post("/idea-check", response_model=IdeaCheckOut)
+async def idea_check(
+    body: IdeaCheckRequest,
+    principal: str = Depends(get_current_principal),
+    db: Session = Depends(get_db),
+):
+    """Gatekeeper check: is this a defensible debate position, free of misuse?
+
+    Called by the frontend before a session is created. No credit is charged
+    and no session exists yet, so a flagged prompt-injection attempt is still
+    reported to the abuse hook (session_id=None) for hosted-overlay tracking.
+    """
+    idea = body.idea.strip()
+    if not idea:
+        raise HTTPException(status_code=400, detail="Idea cannot be empty")
+    if len(idea) > MAX_IDEA_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Idea is too long (max {MAX_IDEA_CHARS} characters)",
+        )
+
+    try:
+        result = await check_idea(idea)
+    except Exception:
+        # No working judge model (missing/invalid provider key, model unreachable,
+        # malformed response, etc.) — surface this as a visible failure rather than
+        # silently waving every idea through the gate.
+        raise HTTPException(
+            status_code=502,
+            detail="The gatekeeper is unavailable right now (no working AI model "
+            "configured). Check your API key / model settings and try again.",
+        )
+
+    if result.category == "prompt_injection":
+        deps.on_guard_result(
+            principal=principal,
+            session_id=None,
+            guard=GuardResult(
+                flagged=True,
+                label="prompt_injection",
+                confidence=1.0,
+                reason=result.reason or None,
+            ),
+            db=db,
+        )
+
+    return IdeaCheckOut(
+        passed=result.passed, category=result.category, reason=result.reason
+    )
 
 
 @router.post("/sessions", response_model=SessionOut)
@@ -407,7 +502,7 @@ async def battle_opening(
         return BattleOpeningOut(agent_reply=existing.content)
 
     # Generate the opening challenge with no prior exchange (idea alone as context)
-    agent_reply = await get_agent_reply(
+    agent_reply = await _get_agent_reply_or_502(
         agent=boss.agent,
         idea=session.idea,
         battle_messages=[],
@@ -490,7 +585,7 @@ async def battle_message(
     )
 
     # Get agent reply (respects per-boss provider/model override if set)
-    agent_reply = await get_agent_reply(
+    agent_reply = await _get_agent_reply_or_502(
         agent=boss.agent,
         idea=session.idea,
         battle_messages=all_messages,

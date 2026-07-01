@@ -33,6 +33,13 @@ run = [
   "mise -C backend run lint",
 ]
 
+[tasks.lint-fix]
+description = "Lint frontend and backend, applying safe fixes"
+run = [
+  "mise -C frontend run lint-fix",
+  "mise -C backend run lint-fix",
+]
+
 [tasks.typecheck]
 description = "Type-check frontend (tsc) and backend (mypy)"
 run = [
@@ -47,9 +54,27 @@ run = [
   "mise -C backend run test",
 ]
 
-[tasks.check]
-description = "Full CI gate: format-check + lint + typecheck + test across both"
-depends = ["format-check", "lint", "typecheck", "test"]
+[tasks.mdformat]
+description = "Auto-format markdown for frontend and backend"
+run = [
+  "mise -C frontend run mdformat",
+  "mise -C backend run mdformat",
+]
+
+[tasks.mdformat-check]
+description = "Check markdown formatting (no writes) for frontend and backend"
+run = [
+  "mise -C frontend run mdformat-check",
+  "mise -C backend run mdformat-check",
+]
+
+[tasks.build]
+description = "Full local gate: format + lint + test across both, plus typecheck (frontend via its production build, which type-checks as part of compiling; backend via mypy)"
+depends = ["format", "lint", "test"]
+run = [
+  "mise -C frontend run build",
+  "mise -C backend run typecheck",
+]
 
 [tasks.start]
 description = "Run backend + frontend dev servers in a split tmux session"

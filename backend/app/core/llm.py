@@ -1,18 +1,34 @@
 import os
 import time
+import httpx
 from typing import Any
 from langchain_litellm import ChatLiteLLM
 from sqlalchemy.orm import Session
 from ..models.db import SessionLocal
 from ..models.schema import Agent, GlobalSettings
 
-# When running inside Docker, Ollama lives on the host — not localhost.
-# Docker Desktop resolves host.docker.internal → host IP automatically on Mac/Windows.
 # Override with OLLAMA_BASE_URL env var for custom setups (e.g. Ollama on a remote machine).
-DEFAULT_OLLAMA_URL = os.environ.get(
-    "OLLAMA_BASE_URL", "http://host.docker.internal:11434"
-)
+DEFAULT_OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 SETTINGS_CACHE_TTL_SECONDS = 2.0
+
+
+def _ollama_reachable(base_url: str, timeout: float = 1.5) -> bool:
+    try:
+        return httpx.get(f"{base_url}/api/tags", timeout=timeout).status_code == 200
+    except Exception:
+        return False
+
+
+def detect_local_ollama_url() -> str | None:
+    """Check whether Ollama is reachable at the default local address.
+
+    Used once at startup on a brand-new database to auto-wire an
+    already-running local Ollama in, so self-host users who have it
+    installed get a working provider without having to type the URL into
+    Settings by hand.
+    """
+    return DEFAULT_OLLAMA_URL if _ollama_reachable(DEFAULT_OLLAMA_URL) else None
+
 
 _settings_cache: tuple[float, dict] | None = None
 _non_agent_model_cache: tuple[float, tuple[str, str]] | None = None

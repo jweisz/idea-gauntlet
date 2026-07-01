@@ -60,7 +60,6 @@ beforeEach(() => {
     session: null,
     activeBossId: null,
     pendingAgents: [],
-    pendingAgentModels: {},
     liveHp: {},
     pendingMessages: {},
   });
@@ -94,7 +93,7 @@ describe("gameStore session lifecycle", () => {
   });
 });
 
-describe("gameStore pending agents and model overrides", () => {
+describe("gameStore pending agents", () => {
   it("swapPendingAgent replaces the agent at the given slot", () => {
     const store = useGameStore.getState();
     store.setPendingAgents([makeAgent(1, "A"), makeAgent(2, "B")]);
@@ -104,27 +103,6 @@ describe("gameStore pending agents and model overrides", () => {
       "A",
       "C",
     ]);
-  });
-
-  it("set/clear per-slot model overrides", () => {
-    const store = useGameStore.getState();
-    store.setPendingAgentModel(2, "anthropic", "claude-opus-4-8");
-    expect(useGameStore.getState().pendingAgentModels[2]).toEqual({
-      provider: "anthropic",
-      model: "claude-opus-4-8",
-    });
-
-    store.clearPendingAgentModel(2);
-    expect(useGameStore.getState().pendingAgentModels[2]).toBeUndefined();
-  });
-
-  it("setAllPendingAgentModels fills all 8 slots", () => {
-    useGameStore.getState().setAllPendingAgentModels("openai", "gpt-4o-mini");
-    const models = useGameStore.getState().pendingAgentModels;
-
-    expect(Object.keys(models)).toHaveLength(8);
-    expect(models[0]).toEqual({ provider: "openai", model: "gpt-4o-mini" });
-    expect(models[7]).toEqual({ provider: "openai", model: "gpt-4o-mini" });
   });
 });
 

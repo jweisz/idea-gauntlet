@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   gauntlet,
-  providersApi,
   ApiError,
   type AgentSummary,
   type Difficulty,
-  type ProviderInfo,
 } from "../lib/api";
 import { useGameStore } from "../store/gameStore";
 import { useChiptune } from "../hooks/useChiptune";
@@ -30,31 +28,12 @@ function gridPosToBossIndex(pos: number): number {
   return pos < CENTER_POS ? pos : pos - 1;
 }
 
-const selectStyle: React.CSSProperties = {
-  background: "var(--nes-darkgray)",
-  border: "2px solid var(--nes-gray)",
-  color: "var(--nes-white)",
-  fontFamily: "inherit",
-  fontSize: "0.55rem",
-  padding: "4px 6px",
-  cursor: "pointer",
-  outline: "none",
-  minWidth: 80,
-};
-
 export default function ChallengerSelectScreen() {
   const navigate = useNavigate();
   const { blip, attack } = useChiptune();
-  const {
-    pendingIdea,
-    pendingAgents,
-    setPendingAgents,
-    setSession,
-    pendingAgentModels,
-    setAllPendingAgentModels,
-  } = useGameStore();
+  const { pendingIdea, pendingAgents, setPendingAgents, setSession } =
+    useGameStore();
 
-  const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(pendingAgents.length === 0);
   const [starting, setStarting] = useState(false);
   const [rerolling, setRerolling] = useState(false);
@@ -62,9 +41,6 @@ export default function ChallengerSelectScreen() {
   const [error, setError] = useState<string | null>(null);
   const [outOfCredits, setOutOfCredits] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
-  // Mass-set model state
-  const [massProvider, setMassProvider] = useState("");
-  const [massModel, setMassModel] = useState("");
 
   const rerollsLeft = MAX_REROLLS - rerollsUsed;
 
@@ -73,16 +49,12 @@ export default function ChallengerSelectScreen() {
       navigate("/", { replace: true });
       return;
     }
-    const fetchRandom =
-      pendingAgents.length === 0
-        ? gauntlet.randomAgents(8)
-        : Promise.resolve(null);
-    const fetchProviders = providersApi.list();
-    Promise.all([fetchRandom, fetchProviders])
-      .then(([random, provList]) => {
-        if (random) setPendingAgents(random);
-        setProviders(provList);
-      })
+    // loading's initial value already accounts for pendingAgents being
+    // pre-populated (a reroll/back-navigation case), so only fetch when empty.
+    if (pendingAgents.length > 0) return;
+    gauntlet
+      .randomAgents(8)
+      .then(setPendingAgents)
       .catch(() => setError("Failed to load agents. Is the backend running?"))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,14 +66,10 @@ export default function ChallengerSelectScreen() {
     setStarting(true);
     attack();
     try {
-      const overrides =
-        Object.keys(pendingAgentModels).length > 0
-          ? pendingAgentModels
-          : undefined;
       const session = await gauntlet.createSession(
         pendingIdea,
         pendingAgents.map((a) => a.id),
-        overrides,
+        undefined,
         difficulty,
       );
       setSession(session);
@@ -132,12 +100,6 @@ export default function ChallengerSelectScreen() {
     } finally {
       setRerolling(false);
     }
-  };
-
-  const handleMassSet = () => {
-    if (!massProvider || !massModel) return;
-    setAllPendingAgentModels(massProvider, massModel);
-    blip();
   };
 
   // Build 3×3 grid: positions 0-3 → bosses 0-3, pos 4 = center, pos 5-8 → bosses 4-7
@@ -189,73 +151,6 @@ export default function ChallengerSelectScreen() {
         </p>
       </div>
 
-      {!loading && providers.length > 0 && (
-        <div
-          style={{
-            width: "min(680px, 100%)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "8px 12px",
-            border: "2px solid var(--nes-gray)",
-            background: "rgba(255,255,255,0.03)",
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.55rem",
-              color: "var(--nes-gray)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            ALL BOSSES:
-          </span>
-          <select
-            style={selectStyle}
-            value={massProvider}
-            onChange={(e) => {
-              setMassProvider(e.target.value);
-              setMassModel("");
-            }}
-          >
-            <option value="">— provider —</option>
-            {providers.map((p) => (
-              <option key={p.provider} value={p.provider}>
-                {p.provider}
-              </option>
-            ))}
-          </select>
-          <select
-            style={{ ...selectStyle, flex: 1, minWidth: 100 }}
-            value={massModel}
-            onChange={(e) => setMassModel(e.target.value)}
-            disabled={!massProvider}
-          >
-            <option value="">— model —</option>
-            {(
-              providers.find((p) => p.provider === massProvider)?.models ?? []
-            ).map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <button
-            className="pixel-btn"
-            style={{
-              fontSize: "0.55rem",
-              padding: "4px 10px",
-              whiteSpace: "nowrap",
-            }}
-            onClick={handleMassSet}
-            disabled={!massProvider || !massModel}
-          >
-            ► SET ALL
-          </button>
-        </div>
-      )}
-
       {/* Difficulty picker */}
       <div
         style={{
@@ -288,13 +183,13 @@ export default function ChallengerSelectScreen() {
                 id: "normal" as Difficulty,
                 label: "NORMAL",
                 color: "var(--nes-yellow)",
-                hint: "slight player advantage · default",
+                hint: "fair and balanced debate",
               },
               {
                 id: "difficult" as Difficulty,
                 label: "DIFFICULT",
                 color: "var(--nes-red)",
-                hint: "balanced · evenly matched",
+                hint: "try your best!",
               },
             ] as const
           ).map(({ id, label, color, hint }) => {
@@ -349,54 +244,45 @@ export default function ChallengerSelectScreen() {
           }}
         >
           {gridItems.map((item, pos) => {
-            // ── Centre tile ─────────────────────────────────────────────
+            // ── Centre tile — the reroll button, standing in for "your idea" ──
             if (item === "center") {
+              const rerollDisabled = rerollsLeft <= 0 || rerolling || starting;
               return (
-                <div
+                <button
                   key="center"
+                  type="button"
+                  className="pixel-btn"
+                  onClick={() => void handleReroll()}
+                  disabled={rerollDisabled}
+                  title={`Reroll all challengers · ${MAX_REROLLS} per game`}
                   style={{
-                    border: "4px solid var(--nes-gray)",
-                    background: "var(--nes-darkgray)",
                     aspectRatio: "1",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 8,
-                    padding: 10,
-                    textAlign: "center",
-                    position: "relative",
-                    overflow: "hidden",
-                    flexWrap: "wrap",
+                    gap: 6,
+                    borderColor: "var(--nes-white)",
+                    boxShadow: "4px 4px 0 rgba(255,255,255,0.15)",
+                    opacity: rerollsLeft <= 0 ? 0.4 : 1,
+                    cursor: rerollDisabled ? "not-allowed" : "pointer",
                   }}
                 >
-                  <button
-                    className="pixel-btn"
-                    onClick={() => void handleReroll()}
-                    disabled={rerollsLeft <= 0 || rerolling || starting}
-                    title={`Reroll all challengers · ${MAX_REROLLS} per game`}
-                    style={{
-                      fontSize: "0.65rem",
-                      padding: "8px 12px",
-                      opacity: rerollsLeft <= 0 ? 0.4 : 1,
-                      cursor: rerollsLeft <= 0 ? "not-allowed" : "pointer",
-                    }}
+                  <div
+                    className={`sprite ${rerolling ? "" : "sprite--idle"}`}
+                    style={{ fontSize: 36 }}
                   >
-                    {rerolling ? "🎲 …" : `🎲 ${rerollsLeft}x`}
-                  </button>
-                  <button
-                    className="pixel-btn"
-                    onClick={() => void handleStart()}
-                    disabled={starting || rerolling}
-                    style={{
-                      fontSize: "0.7rem",
-                      padding: "8px 14px",
-                      background: "var(--nes-green)",
-                      color: "var(--nes-black)",
-                    }}
+                    🎲
+                  </div>
+                  <div style={{ fontSize: "0.65rem", lineHeight: 1.6 }}>
+                    {rerolling ? "REROLLING..." : "REROLL"}
+                  </div>
+                  <div
+                    style={{ fontSize: "0.5rem", color: "var(--nes-yellow)" }}
                   >
-                    {starting ? "..." : "► BEGIN"}
-                  </button>
-                </div>
+                    {rerollsLeft}x LEFT
+                  </div>
+                </button>
               );
             }
 
@@ -406,11 +292,16 @@ export default function ChallengerSelectScreen() {
 
             const bossIdx = gridPosToBossIndex(pos);
             const color = BOSS_COLORS[bossIdx % BOSS_COLORS.length];
-            const modelOverride = pendingAgentModels[bossIdx];
 
             return (
+              // Keyed by grid position, not agent id: a reroll swaps most/all
+              // 8 agents at once, and keying by id would remount every tile
+              // that changed, killing the opacity transition mid-flight and
+              // popping the new content in instantly (the "flash"). Keying by
+              // position keeps the same DOM node across a reroll so its
+              // emoji/name just update in place and the fade stays smooth.
               <div
-                key={agent.id}
+                key={pos}
                 style={{
                   border: `4px solid ${color}`,
                   boxShadow: `4px 4px 0 ${color}`,
@@ -431,20 +322,17 @@ export default function ChallengerSelectScreen() {
                 <div className="sprite sprite--idle" style={{ fontSize: 36 }}>
                   {agent.emoji}
                 </div>
-                <div style={{ fontSize: "0.7rem", lineHeight: 1.6 }}>
+                <div
+                  style={{
+                    fontSize: "0.65rem",
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                    width: "100%",
+                    overflowWrap: "break-word",
+                  }}
+                >
                   {agent.name}
                 </div>
-                {modelOverride && (
-                  <div
-                    style={{
-                      fontSize: "0.5rem",
-                      color: "var(--nes-yellow)",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {modelOverride.provider}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -471,18 +359,44 @@ export default function ChallengerSelectScreen() {
         </div>
       )}
 
-      <div style={{ width: "min(680px, 100%)" }}>
-        <button
-          className="pixel-btn"
-          style={{ fontSize: "0.875rem", padding: "12px 24px" }}
-          onClick={() => {
-            blip();
-            navigate("/");
+      {!loading && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: 12,
+            width: "min(680px, 100%)",
           }}
         >
-          ◀ BACK
-        </button>
-      </div>
+          <button
+            className="pixel-btn"
+            style={{
+              fontSize: "0.8rem",
+              padding: "12px 20px",
+              whiteSpace: "nowrap",
+            }}
+            onClick={() => {
+              blip();
+              navigate("/");
+            }}
+          >
+            ◀ BACK
+          </button>
+          <button
+            className="pixel-btn pixel-btn--green"
+            onClick={() => void handleStart()}
+            disabled={starting || rerolling}
+            style={{
+              fontSize: "0.85rem",
+              padding: "14px 22px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {starting ? "..." : "► ENTER THE GAUNTLET"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

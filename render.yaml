@@ -1,7 +1,4 @@
 # Render blueprint for a SELF-HOST (BYO-key) Idea Gauntlet deployment.
-#
-# For the paid hosted arcade (Google sign-in, credits, Stripe, spend cap), use
-# the private idea-gauntlet-overlay repo's render.yaml instead.
 
 databases:
   - name: idea-gauntlet-db

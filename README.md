@@ -70,9 +70,10 @@ Same task names work at the root (fans out to both sides) or in either subdir:
 
 ```bash
 mise run format        # auto-format (prettier + ruff)
-mise run lint          # eslint + ruff
-mise run test          # frontend type-check + backend pytest
-mise run check         # the full CI gate: format-check + lint + test
+mise run mdformat       # auto-format markdown (prettier + mdformat)
+mise run lint           # eslint + ruff
+mise run test           # frontend type-check + backend pytest
+mise run build          # full local gate: format + lint + test + typecheck
 ```
 
 ## Configuration
@@ -93,12 +94,6 @@ through the UI automatically.
 `render.yaml` provisions managed Postgres + the API + a static frontend build.
 SQLite is the zero-config default for local runs; set `DATABASE_URL` to point at
 Postgres for anything shared.
-
-The paid hosted deployment — Google sign-in, play credits, Stripe top-ups, a
-spend cap, and abuse enforcement — lives in a **separate private overlay** repo
-that depends on this `backend` and layers monetization on through dependency
-overrides. None of that code ships here: this repo is, and stays, a clean
-self-hostable game.
 
 ## License
 

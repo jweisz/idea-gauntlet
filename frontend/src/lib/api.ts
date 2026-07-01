@@ -55,6 +55,7 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
 export interface ProviderInfo {
   provider: string;
   models: string[];
+  error?: string | null;
 }
 
 export interface AppSettings {
@@ -222,6 +223,19 @@ export interface ObjectionEntry {
   counterpoint: string;
 }
 
+export type IdeaCheckCategory =
+  | "ok"
+  | "prompt_injection"
+  | "unsafe"
+  | "no_position"
+  | "undebatable";
+
+export interface IdeaCheckResult {
+  passed: boolean;
+  category: IdeaCheckCategory;
+  reason: string;
+}
+
 export interface BattleTurnOut {
   agent_reply: string;
   user_damage: number;
@@ -240,6 +254,13 @@ export interface BattleTurnOut {
 // ---------------------------------------------------------------------------
 
 export const gauntlet = {
+  checkIdea: (idea: string) =>
+    apiJson<IdeaCheckResult>("/api/gauntlet/idea-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea }),
+    }),
+
   randomAgents: (count = 8) =>
     apiJson<AgentSummary[]>(`/api/gauntlet/agents/random?count=${count}`),
 

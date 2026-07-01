@@ -173,5 +173,34 @@ export function useChiptune() {
     // Typing blip (very quiet, called per character)
     typingBlip: () =>
       when(() => playTone(220 + Math.random() * 60, 0.03, "square", 0.04)),
+
+    // Gatekeeper approves: bright ascending major arpeggio (C-E-G-C)
+    gatekeeperApprove: () =>
+      when(() =>
+        sequence(
+          [
+            [262, 0.09], // C4
+            [330, 0.09], // E4
+            [392, 0.09], // G4
+            [523, 0.28], // C5 — held resolve
+          ],
+          "square",
+          0.18,
+        ),
+      ),
+
+    // Gatekeeper rejects: soft descending minor arpeggio (E-C-A)
+    gatekeeperReject: () =>
+      when(() =>
+        sequence(
+          [
+            [330, 0.1], // E4
+            [262, 0.1], // C4
+            [220, 0.32], // A3 — held resolve, low
+          ],
+          "triangle",
+          0.2,
+        ),
+      ),
   };
 }

@@ -25,16 +25,6 @@ interface GameState {
   setPendingAgents: (agents: AgentSummary[]) => void;
   swapPendingAgent: (index: number, replacement: AgentSummary) => void;
 
-  // Per-slot LLM model overrides (slot 0-7 → { provider, model })
-  pendingAgentModels: Record<number, { provider: string; model: string }>;
-  setPendingAgentModel: (
-    slotIndex: number,
-    provider: string,
-    model: string,
-  ) => void;
-  clearPendingAgentModel: (slotIndex: number) => void;
-  setAllPendingAgentModels: (provider: string, model: string) => void;
-
   // Live HP overrides during battle (updated before the API response is committed)
   liveHp: Record<number, { userHp: number; agentHp: number }>;
   setLiveHp: (bossId: number, userHp: number, agentHp: number) => void;
@@ -79,27 +69,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       next[index] = replacement;
       return { pendingAgents: next };
     }),
-
-  pendingAgentModels: {},
-  setPendingAgentModel: (slotIndex, provider, model) =>
-    set((state) => ({
-      pendingAgentModels: {
-        ...state.pendingAgentModels,
-        [slotIndex]: { provider, model },
-      },
-    })),
-  clearPendingAgentModel: (slotIndex) =>
-    set((state) => {
-      const next = { ...state.pendingAgentModels };
-      delete next[slotIndex];
-      return { pendingAgentModels: next };
-    }),
-  setAllPendingAgentModels: (provider, model) =>
-    set(() => ({
-      pendingAgentModels: Object.fromEntries(
-        Array.from({ length: 8 }, (_, i) => [i, { provider, model }]),
-      ),
-    })),
 
   liveHp: {},
   setLiveHp: (bossId, userHp, agentHp) =>
