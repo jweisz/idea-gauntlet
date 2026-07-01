@@ -63,6 +63,10 @@ function KeyInput({
   onClear,
 }: KeyInputProps) {
   const [draft, setDraft] = useState("");
+  // Last value actually sent to the server — lets a blur with no further
+  // edits skip re-committing, without having to clear the field (which
+  // would leave SHOW with nothing left to reveal).
+  const [committed, setCommitted] = useState("");
   const [focused, setFocused] = useState(false);
   const [show, setShow] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -70,9 +74,9 @@ function KeyInput({
 
   const commit = async () => {
     const trimmed = draft.trim();
-    if (!trimmed) return;
-    setDraft("");
+    if (!trimmed || trimmed === committed) return;
     await onCommit(trimmed);
+    setCommitted(trimmed);
     setSaved(true);
     setTimeout(() => setSaved(false), 1200);
   };
@@ -94,7 +98,7 @@ function KeyInput({
             ✓ saved
           </span>
         )}
-        {!saved && isSet && (
+        {!saved && isSet && !error && (
           <span style={{ fontSize: "0.5rem", color: "var(--nes-green)" }}>
             ✓ configured
           </span>
@@ -126,6 +130,8 @@ function KeyInput({
             onClick={async () => {
               setClearing(true);
               await onClear();
+              setDraft("");
+              setCommitted("");
               setClearing(false);
             }}
             disabled={clearing}
@@ -171,7 +177,7 @@ function KeyInput({
             lineHeight: 1.6,
           }}
         >
-          ⚠ {error}
+          <span style={{ fontSize: "1.5em" }}>⚠️</span> {error}
         </p>
       )}
     </div>
@@ -435,7 +441,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                   : "Music OFF — click to enable"
               }
             >
-              {musicEnabled ? "🎵" : "🔇"}
+              {musicEnabled ? "🔊" : "🔇"}
             </button>
           </div>
         </div>
@@ -615,44 +621,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     />
                   </div>
                 </div>
-
-                {/* Available providers — only those that actually resolved a model list */}
-                {providers.length > 0 && (
-                  <div
-                    style={{
-                      border: "2px solid var(--nes-gray)",
-                      padding: "8px 12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "0.55rem",
-                        color: "var(--nes-gray)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      AVAILABLE PROVIDERS
-                    </div>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      {providers
-                        .filter((p) => !p.error)
-                        .map((p) => (
-                          <span
-                            key={p.provider}
-                            style={{
-                              fontSize: "0.6rem",
-                              color: "var(--nes-green)",
-                            }}
-                          >
-                            ✓ {p.provider}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
               </>
             )}
 

@@ -14,6 +14,7 @@ export default function AudioControls() {
   const base: React.CSSProperties = {
     background: "var(--nes-darkgray)",
     border: "3px solid var(--nes-gray)",
+    boxShadow: "4px 4px 0 var(--nes-gray)",
     color: "var(--nes-white)",
     fontFamily: "inherit",
     fontSize: "0.8rem",
@@ -33,6 +34,7 @@ export default function AudioControls() {
   const active: React.CSSProperties = {
     ...base,
     borderColor: "var(--nes-cyan)",
+    boxShadow: "4px 4px 0 var(--nes-cyan)",
     background: "rgba(66,197,245,0.1)",
   };
 
@@ -61,7 +63,7 @@ export default function AudioControls() {
             : "Music OFF — click to enable"
         }
       >
-        <span>{musicEnabled ? "🎵" : "🔇"}</span>
+        <span>{musicEnabled ? "🔊" : "🔇"}</span>
         <span
           style={{
             fontSize: "0.65rem",
@@ -98,6 +100,7 @@ export default function AudioControls() {
             ? {
                 ...active,
                 borderColor: "var(--nes-yellow)",
+                boxShadow: "4px 4px 0 var(--nes-yellow)",
                 background: "rgba(245,197,66,0.1)",
               }
             : base
