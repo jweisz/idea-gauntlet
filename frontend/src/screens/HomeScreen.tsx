@@ -22,7 +22,7 @@ import { useUIStore } from "../store/uiStore";
  */
 export default function HomeScreen() {
   const navigate = useNavigate();
-  const { blip, attack } = useChiptune();
+  const { blip, attack, hurt } = useChiptune();
   const { setSession, clearSession } = useGameStore();
   const gameName = useGameName();
   const llmConfigured = useLlmConfigured();
@@ -34,6 +34,11 @@ export default function HomeScreen() {
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
   const [acceptingNewPlayers, setAcceptingNewPlayers] = useState(true);
   const [billingEnabled, setBillingEnabled] = useState(false);
+  const [revealedId, setRevealedId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SessionListItem | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     gauntlet
@@ -72,6 +77,24 @@ export default function HomeScreen() {
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Failed to open that game");
       setLoadingId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    hurt();
+    setDeleting(true);
+    try {
+      await gauntlet.deleteSession(deleteTarget.id);
+      setSessions(
+        (prev) => prev?.filter((s) => s.id !== deleteTarget.id) ?? prev,
+      );
+      setRevealedId(null);
+      setDeleteTarget(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : "Failed to delete that game");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -192,46 +215,162 @@ export default function HomeScreen() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sessions?.map((s) => {
               const done = s.status === "complete";
+              const revealed = revealedId === s.id;
               return (
-                <button
-                  key={s.id}
-                  className="pixel-btn"
-                  disabled={loadingId === s.id}
-                  style={{
-                    fontSize: "0.75rem",
-                    padding: "12px 14px",
-                    textAlign: "left",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                    opacity: loadingId === s.id ? 0.5 : 1,
-                  }}
-                  onClick={() => openSession(s)}
-                >
-                  <span
+                <div key={s.id} style={{ display: "flex", gap: 8 }}>
+                  <button
+                    className="pixel-btn"
+                    disabled={loadingId === s.id}
                     style={{
+                      flex: revealed ? "0 0 auto" : "1 1 auto",
+                      width: revealed ? 150 : undefined,
+                      minWidth: 0,
                       overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      transition: "width 150ms ease",
+                      fontSize: "0.75rem",
+                      padding: "12px 14px",
+                      textAlign: "left",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      opacity: loadingId === s.id ? 0.5 : 1,
+                    }}
+                    onClick={() => {
+                      blip();
+                      setRevealedId(revealed ? null : s.id);
                     }}
                   >
-                    <span className="pixel-arrow">▶</span> {s.idea}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "0.625rem",
-                      color: done ? "var(--nes-green)" : "var(--nes-yellow)",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    {done ? "COMPLETE" : "IN PROGRESS"} ·{" "}
-                    {s.difficulty.toUpperCase()} · {s.bosses_defeated}/
-                    {s.total_bosses} DEFEATED
-                    {loadingId === s.id ? " · OPENING…" : ""}
-                  </span>
-                </button>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <span className="pixel-arrow">▶</span> {s.idea}
+                    </span>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: "0.625rem",
+                        color: done ? "var(--nes-green)" : "var(--nes-yellow)",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {done ? "COMPLETE" : "IN PROGRESS"} ·{" "}
+                      {s.difficulty.toUpperCase()} · {s.bosses_defeated}/
+                      {s.total_bosses} DEFEATED
+                      {loadingId === s.id ? " · OPENING…" : ""}
+                    </span>
+                  </button>
+
+                  {revealed && (
+                    <>
+                      <button
+                        className="pixel-btn pixel-btn--green"
+                        disabled={loadingId === s.id}
+                        title="Resume"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: "1rem",
+                          padding: "12px 16px",
+                        }}
+                        onClick={() => openSession(s)}
+                      >
+                        <span className="pixel-arrow">▶</span>
+                      </button>
+                      <button
+                        className="pixel-btn pixel-btn--red"
+                        disabled={loadingId === s.id}
+                        title="Delete"
+                        style={{
+                          flexShrink: 0,
+                          fontSize: "1rem",
+                          padding: "12px 16px",
+                        }}
+                        onClick={() => {
+                          blip();
+                          setDeleteTarget(s);
+                        }}
+                      >
+                        🗑
+                      </button>
+                    </>
+                  )}
+                </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.85)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            style={{
+              background: "var(--nes-darkgray)",
+              border: "4px solid var(--nes-red)",
+              boxShadow: "6px 6px 0 var(--nes-red)",
+              padding: "28px 32px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
+              textAlign: "center",
+              maxWidth: 420,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: "2rem" }}>🗑</div>
+            <h2 style={{ fontSize: "0.85rem", color: "var(--nes-red)" }}>
+              DELETE THIS GAME?
+            </h2>
+            <p
+              style={{
+                fontSize: "0.6rem",
+                color: "var(--nes-gray)",
+                lineHeight: 1.8,
+              }}
+            >
+              "{deleteTarget.idea}"
+              <br />
+              This can't be undone.
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                className="pixel-btn pixel-btn--red"
+                style={{ fontSize: "0.7rem" }}
+                disabled={deleting}
+                onClick={() => void handleDelete()}
+              >
+                {deleting ? "DELETING…" : "DELETE"}
+              </button>
+              <button
+                className="pixel-btn"
+                style={{ fontSize: "0.7rem" }}
+                disabled={deleting}
+                onClick={() => {
+                  blip();
+                  setDeleteTarget(null);
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
           </div>
         </div>
       )}

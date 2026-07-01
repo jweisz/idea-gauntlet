@@ -945,3 +945,31 @@ def unpublish_from_leaderboard(
         db.delete(entry)
         db.commit()
     return {"status": "unpublished"}
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(
+    session_id: int,
+    principal: str = Depends(get_current_principal),
+    db: Session = Depends(get_db),
+):
+    """Permanently delete one of the player's own games (bosses/messages cascade).
+
+    Also drops any leaderboard entry for it — a leaderboard row is a snapshot
+    that outlives its session, but deleting the game entirely should take the
+    public entry with it rather than leaving a dangling reference.
+    """
+    session = (
+        db.query(GauntletSession)
+        .filter(GauntletSession.id == session_id, GauntletSession.user_id == principal)
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    db.query(LeaderboardEntry).filter(
+        LeaderboardEntry.session_id == session_id
+    ).delete()
+    db.delete(session)
+    db.commit()
+    return {"status": "deleted"}

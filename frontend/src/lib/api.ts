@@ -280,6 +280,11 @@ export const gauntlet = {
   getSession: (id: number) =>
     apiJson<SessionOut>(`/api/gauntlet/sessions/${id}`),
 
+  deleteSession: (id: number) =>
+    apiJson<{ status: string }>(`/api/gauntlet/sessions/${id}`, {
+      method: "DELETE",
+    }),
+
   getBattleOpening: (session_id: number, boss_id: number) =>
     apiJson<{ agent_reply: string }>(
       `/api/gauntlet/sessions/${session_id}/battles/${boss_id}/opening`,
