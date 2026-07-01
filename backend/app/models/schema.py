@@ -59,9 +59,6 @@ class Agent(Base):
     emoji: Mapped[str] = mapped_column(String, default="🤖")
 
     token_budget: Mapped[int] = mapped_column(Integer, default=3)
-    # e.g. openai, anthropic
-    provider: Mapped[str] = mapped_column(String, default="openai")
-    model: Mapped[str] = mapped_column(String, default="gpt-4o")
 
 
 # ---------------------------------------------------------------------------
@@ -104,10 +101,6 @@ class BattleBoss(Base):
     status: Mapped[str] = mapped_column(String, default="pending")
     user_hp: Mapped[int] = mapped_column(Integer, default=100)
     agent_hp: Mapped[int] = mapped_column(Integer, default=100)
-    # overrides agent.provider for this battle
-    provider_override: Mapped[str | None] = mapped_column(String, nullable=True)
-    # overrides agent.model for this battle
-    model_override: Mapped[str | None] = mapped_column(String, nullable=True)
 
     session: Mapped["GauntletSession"] = relationship(
         "GauntletSession", back_populates="bosses"

@@ -5,7 +5,7 @@ from typing import Any
 from langchain_litellm import ChatLiteLLM
 from sqlalchemy.orm import Session
 from ..models.db import SessionLocal
-from ..models.schema import Agent, GlobalSettings
+from ..models.schema import GlobalSettings
 
 # Override with OLLAMA_BASE_URL env var for custom setups (e.g. Ollama on a remote machine).
 DEFAULT_OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -78,13 +78,12 @@ def get_settings_from_db():
 
 def get_non_agent_model_config() -> tuple[str, str]:
     """
-    Returns the provider/model used for non-agent inference
-    (router, context summarization, semantic analysis).
+    Returns the single global provider/model used for all LLM inference
+    (agent battle replies, gatekeeper, scoring, summaries).
     Resolution order:
     1) Global settings non_agent_provider/non_agent_model
     2) NON_AGENT_PROVIDER/NON_AGENT_MODEL environment variables
-    3) First configured arena agent model
-    4) Local-safe default (ollama/llama3.2:3b)
+    3) Local-safe default (ollama/llama3.2:3b)
     """
     global _non_agent_model_cache
     if _non_agent_model_cache is not None and _cache_valid(_non_agent_model_cache):
@@ -102,14 +101,6 @@ def get_non_agent_model_config() -> tuple[str, str]:
         env_model = os.environ.get("NON_AGENT_MODEL")
         if env_provider and env_model:
             config = (env_provider, env_model)
-            _non_agent_model_cache = (time.monotonic(), config)
-            return config
-
-        first_agent = (
-            db.query(Agent).order_by(Agent.sort_order.asc(), Agent.id.asc()).first()
-        )
-        if first_agent and first_agent.provider and first_agent.model:
-            config = (first_agent.provider, first_agent.model)
             _non_agent_model_cache = (time.monotonic(), config)
             return config
     finally:

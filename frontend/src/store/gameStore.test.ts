@@ -13,8 +13,6 @@ function makeAgent(id: number, name: string): AgentSummary {
     name,
     emoji: "🤖",
     role_description: `${name} role`,
-    provider: "ollama",
-    model: "llama3",
   };
 }
 

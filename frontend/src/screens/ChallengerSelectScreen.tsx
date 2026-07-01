@@ -69,7 +69,6 @@ export default function ChallengerSelectScreen() {
       const session = await gauntlet.createSession(
         pendingIdea,
         pendingAgents.map((a) => a.id),
-        undefined,
         difficulty,
       );
       setSession(session);

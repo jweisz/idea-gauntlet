@@ -149,8 +149,6 @@ export interface AgentSummary {
   name: string;
   emoji: string;
   role_description: string;
-  provider: string;
-  model: string;
 }
 
 export interface BattleMessageOut {
@@ -269,13 +267,12 @@ export const gauntlet = {
   createSession: (
     idea: string,
     agent_ids: number[],
-    model_overrides?: Record<number, { provider: string; model: string }>,
     difficulty: Difficulty = "normal",
   ) =>
     apiJson<SessionOut>("/api/gauntlet/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idea, agent_ids, model_overrides, difficulty }),
+      body: JSON.stringify({ idea, agent_ids, difficulty }),
     }),
 
   listSessions: () => apiJson<SessionListItem[]>("/api/gauntlet/sessions"),

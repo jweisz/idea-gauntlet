@@ -15,8 +15,6 @@ def _create_agent(db_session, name: str = "Analyst", budget: int = 3) -> schema.
         role_description=f"{name} role",
         relevance_instructions="",
         system_prompt=f"You are {name}.",
-        provider="ollama",
-        model="llama3",
         token_budget=budget,
     )
     db_session.add(agent)
@@ -63,8 +61,6 @@ def test_agents_crud_and_duplicate_name_rejection(client):
             "role_description": "Makes plans.",
             "system_prompt": "Plan carefully.",
             "emoji": "🧭",
-            "provider": "ollama",
-            "model": "llama3",
             "token_budget": 4,
         },
     )
@@ -80,8 +76,6 @@ def test_agents_crud_and_duplicate_name_rejection(client):
             "role_description": "Duplicate.",
             "system_prompt": "Duplicate.",
             "emoji": "🤖",
-            "provider": "ollama",
-            "model": "llama3",
             "token_budget": 4,
         },
     )
@@ -94,8 +88,6 @@ def test_agents_crud_and_duplicate_name_rejection(client):
             "role_description": "Improves plans.",
             "system_prompt": "Improve carefully.",
             "emoji": "🧠",
-            "provider": "openai",
-            "model": "gpt-4o-mini",
             "token_budget": 6,
         },
     )

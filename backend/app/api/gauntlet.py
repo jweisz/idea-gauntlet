@@ -57,9 +57,7 @@ from ..core import deps
 logger = logging.getLogger(__name__)
 
 
-async def _get_agent_reply_or_502(
-    *, agent, idea, battle_messages, provider_override, model_override
-):
+async def _get_agent_reply_or_502(*, agent, idea, battle_messages):
     """Call get_agent_reply, turning a failure into a clear 502.
 
     get_agent_reply has no fallback — a boss with no working model has no
@@ -71,8 +69,6 @@ async def _get_agent_reply_or_502(
             agent=agent,
             idea=idea,
             battle_messages=battle_messages,
-            provider_override=provider_override,
-            model_override=model_override,
         )
     except Exception:
         logger.warning(
@@ -120,8 +116,6 @@ class AgentSummary(BaseModel):
     name: str
     emoji: str
     role_description: str
-    provider: str
-    model: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -213,15 +207,9 @@ def _entry_to_out(e: LeaderboardEntry) -> "LeaderboardEntryOut":
     )
 
 
-class ModelOverride(BaseModel):
-    provider: str
-    model: str
-
-
 class CreateSessionRequest(BaseModel):
     idea: str
     agent_ids: List[int]  # exactly 8
-    model_overrides: Optional[dict] = None  # {slot_index: {provider, model}}
     difficulty: str = "normal"  # "easy" | "normal" | "difficult"
 
 
@@ -372,21 +360,13 @@ def create_session(
     db.add(session)
     db.flush()  # get session.id
 
-    overrides = body.model_overrides or {}
-    for idx, agent_id in enumerate(body.agent_ids):
-        override = overrides.get(str(idx)) or overrides.get(idx)
+    for agent_id in body.agent_ids:
         boss = BattleBoss(
             session_id=session.id,
             agent_id=agent_id,
             status="pending",
             user_hp=MAX_HP,
             agent_hp=MAX_HP,
-            provider_override=override.get("provider")
-            if isinstance(override, dict)
-            else None,
-            model_override=override.get("model")
-            if isinstance(override, dict)
-            else None,
         )
         db.add(boss)
 
@@ -502,8 +482,6 @@ async def battle_opening(
         agent=boss.agent,
         idea=session.idea,
         battle_messages=[],
-        provider_override=boss.provider_override,
-        model_override=boss.model_override,
     )
 
     db.add(
@@ -580,13 +558,10 @@ async def battle_message(
         .all()
     )
 
-    # Get agent reply (respects per-boss provider/model override if set)
     agent_reply = await _get_agent_reply_or_502(
         agent=boss.agent,
         idea=session.idea,
         battle_messages=all_messages,
-        provider_override=boss.provider_override,
-        model_override=boss.model_override,
     )
 
     # Score the exchange (also classifies the user message for misuse)
