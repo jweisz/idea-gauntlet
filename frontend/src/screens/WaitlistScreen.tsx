@@ -107,7 +107,13 @@ export default function WaitlistScreen() {
             onClick={() => void submit()}
             disabled={!email.trim() || status === "saving"}
           >
-            {status === "saving" ? "SIGNING UP…" : "NOTIFY ME ►"}
+            {status === "saving" ? (
+              "SIGNING UP…"
+            ) : (
+              <>
+                NOTIFY ME <span className="pixel-arrow">▶</span>
+              </>
+            )}
           </button>
         </div>
       )}
@@ -120,7 +126,7 @@ export default function WaitlistScreen() {
           navigate("/");
         }}
       >
-        ◀ BACK
+        <span className="pixel-arrow">◀</span> BACK
       </button>
     </div>
   );

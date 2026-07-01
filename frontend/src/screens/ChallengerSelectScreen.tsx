@@ -381,7 +381,7 @@ export default function ChallengerSelectScreen() {
               navigate("/");
             }}
           >
-            ◀ BACK
+            <span className="pixel-arrow">◀</span> BACK
           </button>
           <button
             className="pixel-btn pixel-btn--green"
@@ -393,7 +393,13 @@ export default function ChallengerSelectScreen() {
               whiteSpace: "nowrap",
             }}
           >
-            {starting ? "..." : "► ENTER THE GAUNTLET"}
+            {starting ? (
+              "..."
+            ) : (
+              <>
+                <span className="pixel-arrow">▶</span> ENTER THE GAUNTLET
+              </>
+            )}
           </button>
         </div>
       )}

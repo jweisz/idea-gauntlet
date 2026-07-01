@@ -114,7 +114,7 @@ export default function IdeaEntryScreen() {
                 setIdea(s);
               }}
             >
-              ▶ {s}
+              <span className="pixel-arrow">▶</span> {s}
             </button>
           ))}
         </div>
@@ -143,7 +143,7 @@ export default function IdeaEntryScreen() {
             navigate("/");
           }}
         >
-          ◀ BACK
+          <span className="pixel-arrow">◀</span> BACK
         </button>
 
         <button
@@ -158,7 +158,7 @@ export default function IdeaEntryScreen() {
           onClick={handleContinue}
           disabled={!idea.trim()}
         >
-          FACE THE GATEKEEPER ►
+          FACE THE GATEKEEPER <span className="pixel-arrow">▶</span>
         </button>
       </div>
     </div>

@@ -364,7 +364,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             value={manualTrackId ?? ""}
             onChange={(e) => setManualTrack(e.target.value || null)}
           >
-            <option value="">AUTO (per screen)</option>
+            <option value="">AUTO</option>
             {TRACKS.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -598,7 +598,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               style={{ fontSize: "0.7rem", alignSelf: "flex-end" }}
               onClick={onClose}
             >
-              SAVE ►
+              SAVE <span className="pixel-arrow">▶</span>
             </button>
           </>
         )}

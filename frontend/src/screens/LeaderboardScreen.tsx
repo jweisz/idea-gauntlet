@@ -37,21 +37,6 @@ export default function LeaderboardScreen() {
         padding: "40px 24px",
       }}
     >
-      <button
-        className="pixel-btn"
-        style={{
-          alignSelf: "flex-start",
-          fontSize: "0.75rem",
-          padding: "8px 14px",
-        }}
-        onClick={() => {
-          blip();
-          navigate("/");
-        }}
-      >
-        ◀ YOUR GAMES
-      </button>
-
       <h1
         className="text-yellow animate-glow"
         style={{ fontSize: "1.6rem", letterSpacing: 3, textAlign: "center" }}
@@ -141,6 +126,21 @@ export default function LeaderboardScreen() {
           </div>
         ))}
       </div>
+
+      <button
+        className="pixel-btn"
+        style={{
+          alignSelf: "flex-start",
+          fontSize: "0.75rem",
+          padding: "8px 14px",
+        }}
+        onClick={() => {
+          blip();
+          navigate("/");
+        }}
+      >
+        <span className="pixel-arrow">◀</span> YOUR GAMES
+      </button>
     </div>
   );
 }

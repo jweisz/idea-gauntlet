@@ -10,7 +10,8 @@ import { useGameStore } from "../store/gameStore";
 import { useChiptune } from "../hooks/useChiptune";
 import { useGameName } from "../store/configStore";
 import CreditsBadge from "../components/CreditsBadge";
-import LlmSetupBanner from "../components/LlmSetupBanner";
+import { useLlmConfigured } from "../hooks/useLlmConfigured";
+import { useUIStore } from "../store/uiStore";
 
 /**
  * Your Games — the landing screen.
@@ -24,6 +25,8 @@ export default function HomeScreen() {
   const { blip, attack } = useChiptune();
   const { setSession, clearSession } = useGameStore();
   const gameName = useGameName();
+  const llmConfigured = useLlmConfigured();
+  const openSettings = useUIStore((s) => s.openSettings);
 
   const [sessions, setSessions] = useState<SessionListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,8 +86,6 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
-      <LlmSetupBanner />
-
       {billingEnabled && (
         <div style={{ alignSelf: "flex-end" }}>
           <CreditsBadge />
@@ -109,13 +110,53 @@ export default function HomeScreen() {
         </p>
       </div>
 
-      <button
-        className="pixel-btn pixel-btn--green"
-        style={{ fontSize: "1rem", padding: "18px 48px" }}
-        onClick={startNew}
-      >
-        {acceptingNewPlayers ? "＋ NEW GAME" : "🔔 JOIN WAITLIST"}
-      </button>
+      {llmConfigured === "unconfigured" ? (
+        <div
+          className="pixel-box pixel-box--cyan"
+          style={{
+            width: "100%",
+            maxWidth: 420,
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16,
+            padding: "24px 20px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.8rem",
+              color: "var(--nes-cyan)",
+              lineHeight: 1.8,
+            }}
+          >
+            Want to play? Configure your AI model in Settings.
+          </p>
+          <button
+            className="pixel-btn"
+            style={{
+              fontSize: "0.85rem",
+              padding: "14px 32px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+            onClick={openSettings}
+          >
+            <span style={{ fontSize: "1.3em" }}>⚙️</span>
+            CONFIGURE
+          </button>
+        </div>
+      ) : (
+        <button
+          className="pixel-btn pixel-btn--green"
+          style={{ fontSize: "1rem", padding: "18px 48px" }}
+          onClick={startNew}
+        >
+          {acceptingNewPlayers ? "＋ NEW GAME" : "🔔 JOIN WAITLIST"}
+        </button>
+      )}
 
       {leaderboardEnabled && (
         <button
@@ -130,80 +171,70 @@ export default function HomeScreen() {
         </button>
       )}
 
-      <div style={{ width: "100%" }}>
-        <p
-          style={{
-            fontSize: "0.75rem",
-            color: "var(--nes-gray)",
-            marginBottom: 12,
-          }}
-        >
-          YOUR GAMES
-        </p>
-
-        {error && (
-          <p style={{ fontSize: "0.75rem", color: "var(--nes-red)" }}>
-            {error}
+      {(error || (sessions && sessions.length > 0)) && (
+        <div style={{ width: "100%" }}>
+          <p
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--nes-gray)",
+              marginBottom: 12,
+            }}
+          >
+            YOUR GAMES
           </p>
-        )}
 
-        {!error && sessions === null && (
-          <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>
-            LOADING…
-          </p>
-        )}
+          {error && (
+            <p style={{ fontSize: "0.75rem", color: "var(--nes-red)" }}>
+              {error}
+            </p>
+          )}
 
-        {!error && sessions !== null && sessions.length === 0 && (
-          <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>
-            No games yet — start your first one above.
-          </p>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {sessions?.map((s) => {
-            const done = s.status === "complete";
-            return (
-              <button
-                key={s.id}
-                className="pixel-btn"
-                disabled={loadingId === s.id}
-                style={{
-                  fontSize: "0.75rem",
-                  padding: "12px 14px",
-                  textAlign: "left",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  opacity: loadingId === s.id ? 0.5 : 1,
-                }}
-                onClick={() => openSession(s)}
-              >
-                <span
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {sessions?.map((s) => {
+              const done = s.status === "complete";
+              return (
+                <button
+                  key={s.id}
+                  className="pixel-btn"
+                  disabled={loadingId === s.id}
                   style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    fontSize: "0.75rem",
+                    padding: "12px 14px",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    opacity: loadingId === s.id ? 0.5 : 1,
                   }}
+                  onClick={() => openSession(s)}
                 >
-                  ▶ {s.idea}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.625rem",
-                    color: done ? "var(--nes-green)" : "var(--nes-yellow)",
-                    letterSpacing: 1,
-                  }}
-                >
-                  {done ? "COMPLETE" : "IN PROGRESS"} ·{" "}
-                  {s.difficulty.toUpperCase()} · {s.bosses_defeated}/
-                  {s.total_bosses} DEFEATED
-                  {loadingId === s.id ? " · OPENING…" : ""}
-                </span>
-              </button>
-            );
-          })}
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span className="pixel-arrow">▶</span> {s.idea}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.625rem",
+                      color: done ? "var(--nes-green)" : "var(--nes-yellow)",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {done ? "COMPLETE" : "IN PROGRESS"} ·{" "}
+                    {s.difficulty.toUpperCase()} · {s.bosses_defeated}/
+                    {s.total_bosses} DEFEATED
+                    {loadingId === s.id ? " · OPENING…" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -474,7 +474,7 @@ export default function SummaryScreen() {
           onClick={handleNewGame}
           style={{ fontSize: "0.9rem", padding: "14px 32px" }}
         >
-          ► NEW GAME
+          <span className="pixel-arrow">▶</span> NEW GAME
         </button>
       </div>
 
@@ -571,7 +571,13 @@ export default function SummaryScreen() {
                 }}
                 disabled={publishStatus === "publishing"}
               >
-                {publishStatus === "publishing" ? "PUBLISHING…" : "PUBLISH ►"}
+                {publishStatus === "publishing" ? (
+                  "PUBLISHING…"
+                ) : (
+                  <>
+                    PUBLISH <span className="pixel-arrow">▶</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

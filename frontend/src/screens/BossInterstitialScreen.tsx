@@ -124,7 +124,7 @@ export default function BossInterstitialScreen() {
                 fontSize: "0.875rem",
               }}
             >
-              ► PRESS [ENTER] TO FIGHT
+              <span className="pixel-arrow">▶</span> PRESS [ENTER] TO FIGHT
             </div>
           )}
         </>

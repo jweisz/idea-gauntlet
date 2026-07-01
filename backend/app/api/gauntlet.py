@@ -14,7 +14,7 @@ import logging
 import random
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload, selectinload
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -123,8 +123,7 @@ class AgentSummary(BaseModel):
     provider: str
     model: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BattleMessageOut(BaseModel):
@@ -135,8 +134,7 @@ class BattleMessageOut(BaseModel):
     damage_reason: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BattleBossOut(BaseModel):
@@ -148,8 +146,7 @@ class BattleBossOut(BaseModel):
     agent: AgentSummary
     messages: List[BattleMessageOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionOut(BaseModel):
@@ -162,8 +159,7 @@ class SessionOut(BaseModel):
     created_at: datetime
     bosses: List[BattleBossOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionListItem(BaseModel):

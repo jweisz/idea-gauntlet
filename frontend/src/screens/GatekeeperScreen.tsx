@@ -183,7 +183,7 @@ export default function GatekeeperScreen() {
             navigate("/new");
           }}
         >
-          ◀ REVISE
+          <span className="pixel-arrow">◀</span> REVISE
         </button>
 
         {phase === "approved" && (
@@ -199,7 +199,7 @@ export default function GatekeeperScreen() {
               navigate("/choose-challengers");
             }}
           >
-            CHOOSE YOUR CHALLENGERS ►
+            CHOOSE YOUR CHALLENGERS <span className="pixel-arrow">▶</span>
           </button>
         )}
 
