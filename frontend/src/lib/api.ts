@@ -59,8 +59,8 @@ export interface ProviderInfo {
 }
 
 export interface AppSettings {
-  non_agent_provider: string | null;
-  non_agent_model: string | null;
+  llm_provider: string | null;
+  llm_model: string | null;
   openai_api_key: boolean;
   anthropic_api_key: boolean;
   google_api_key: boolean;

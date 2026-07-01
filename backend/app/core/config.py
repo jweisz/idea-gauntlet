@@ -39,9 +39,9 @@ def lock_llm_settings() -> bool:
 
     Set LOCK_LLM_SETTINGS=true for a self-host deploy (e.g. Render) where the
     operator configures the LLM entirely via env vars — API key(s) plus
-    NON_AGENT_PROVIDER/NON_AGENT_MODEL — and doesn't want it visible or
-    editable by whoever opens the app. Defaults to false so a local/self-host
-    run with no env vars set still gets the in-app onboarding UI.
+    LLM_PROVIDER/LLM_MODEL — and doesn't want it visible or editable by
+    whoever opens the app. Defaults to false so a local/self-host run with
+    no env vars set still gets the in-app onboarding UI.
     """
     return os.environ.get("LOCK_LLM_SETTINGS", "").strip().lower() in {
         "1",

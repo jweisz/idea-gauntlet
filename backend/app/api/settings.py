@@ -8,7 +8,7 @@ from ..core.deps import get_app_config
 router = APIRouter(prefix="/api/settings", tags=["Settings"])
 
 _API_KEY_FIELDS = {"openai_api_key", "anthropic_api_key", "google_api_key"}
-_MODEL_FIELDS = {"non_agent_provider", "non_agent_model"}
+_MODEL_FIELDS = {"llm_provider", "llm_model"}
 
 
 # Global settings for the single authorized user
@@ -25,8 +25,8 @@ def get_settings(db: Session = Depends(get_db)):
         "theme_preferences": settings.theme_preferences,
         "default_agent_turn_budget": settings.default_agent_turn_budget,
         "global_system_instruction": settings.global_system_instruction,
-        "non_agent_provider": settings.non_agent_provider,
-        "non_agent_model": settings.non_agent_model,
+        "llm_provider": settings.llm_provider,
+        "llm_model": settings.llm_model,
     }
 
 
@@ -64,10 +64,10 @@ def update_settings(
         settings.default_agent_turn_budget = settings_in["default_agent_turn_budget"]
     if "global_system_instruction" in settings_in:
         settings.global_system_instruction = settings_in["global_system_instruction"]
-    if "non_agent_provider" in settings_in:
-        settings.non_agent_provider = settings_in["non_agent_provider"]
-    if "non_agent_model" in settings_in:
-        settings.non_agent_model = settings_in["non_agent_model"]
+    if "llm_provider" in settings_in:
+        settings.llm_provider = settings_in["llm_provider"]
+    if "llm_model" in settings_in:
+        settings.llm_model = settings_in["llm_model"]
 
     db.commit()
     invalidate_settings_cache()

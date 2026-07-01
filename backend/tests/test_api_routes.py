@@ -30,8 +30,8 @@ def test_settings_partial_update_and_readback(client):
     update_response = client.post(
         "/api/settings/",
         json={
-            "non_agent_provider": "openai",
-            "non_agent_model": "gpt-4o-mini",
+            "llm_provider": "openai",
+            "llm_model": "gpt-4o-mini",
         },
     )
     assert update_response.status_code == 200
@@ -39,18 +39,18 @@ def test_settings_partial_update_and_readback(client):
     read_response = client.get("/api/settings/")
     assert read_response.status_code == 200
     payload = read_response.json()
-    assert payload["non_agent_provider"] == "openai"
-    assert payload["non_agent_model"] == "gpt-4o-mini"
+    assert payload["llm_provider"] == "openai"
+    assert payload["llm_model"] == "gpt-4o-mini"
 
     partial_update = client.post(
         "/api/settings/",
-        json={"non_agent_provider": "ollama", "non_agent_model": "llama3"},
+        json={"llm_provider": "ollama", "llm_model": "llama3"},
     )
     assert partial_update.status_code == 200
 
     updated_payload = client.get("/api/settings/").json()
-    assert updated_payload["non_agent_provider"] == "ollama"
-    assert updated_payload["non_agent_model"] == "llama3"
+    assert updated_payload["llm_provider"] == "ollama"
+    assert updated_payload["llm_model"] == "llama3"
 
 
 def test_agents_crud_and_duplicate_name_rejection(client):

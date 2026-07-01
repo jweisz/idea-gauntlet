@@ -31,7 +31,7 @@ def detect_local_ollama_url() -> str | None:
 
 
 _settings_cache: tuple[float, dict] | None = None
-_non_agent_model_cache: tuple[float, tuple[str, str]] | None = None
+_llm_config_cache: tuple[float, tuple[str, str]] | None = None
 
 
 def _cache_valid(cached: tuple[float, object] | None) -> bool:
@@ -42,9 +42,9 @@ def _cache_valid(cached: tuple[float, object] | None) -> bool:
 
 def invalidate_settings_cache() -> None:
     global _settings_cache
-    global _non_agent_model_cache
+    global _llm_config_cache
     _settings_cache = None
-    _non_agent_model_cache = None
+    _llm_config_cache = None
 
 
 def get_settings_from_db():
@@ -64,10 +64,8 @@ def get_settings_from_db():
             "GEMINI_API_KEY": settings.google_api_key
             or os.environ.get("GEMINI_API_KEY"),
             "OLLAMA_BASE_URL": settings.ollama_base_url or DEFAULT_OLLAMA_URL,
-            "NON_AGENT_PROVIDER": settings.non_agent_provider
-            or os.environ.get("NON_AGENT_PROVIDER"),
-            "NON_AGENT_MODEL": settings.non_agent_model
-            or os.environ.get("NON_AGENT_MODEL"),
+            "LLM_PROVIDER": settings.llm_provider or os.environ.get("LLM_PROVIDER"),
+            "LLM_MODEL": settings.llm_model or os.environ.get("LLM_MODEL"),
         }
     else:
         payload = {"OLLAMA_BASE_URL": DEFAULT_OLLAMA_URL}
@@ -76,38 +74,38 @@ def get_settings_from_db():
     return payload
 
 
-def get_non_agent_model_config() -> tuple[str, str]:
+def get_llm_config() -> tuple[str, str]:
     """
     Returns the single global provider/model used for all LLM inference
     (agent battle replies, gatekeeper, scoring, summaries).
     Resolution order:
-    1) Global settings non_agent_provider/non_agent_model
-    2) NON_AGENT_PROVIDER/NON_AGENT_MODEL environment variables
+    1) Global settings llm_provider/llm_model
+    2) LLM_PROVIDER/LLM_MODEL environment variables
     3) Local-safe default (ollama/llama3.2:3b)
     """
-    global _non_agent_model_cache
-    if _non_agent_model_cache is not None and _cache_valid(_non_agent_model_cache):
-        return _non_agent_model_cache[1]
+    global _llm_config_cache
+    if _llm_config_cache is not None and _cache_valid(_llm_config_cache):
+        return _llm_config_cache[1]
 
     db: Session = SessionLocal()
     try:
         settings = db.query(GlobalSettings).first()
-        if settings and settings.non_agent_provider and settings.non_agent_model:
-            config = (settings.non_agent_provider, settings.non_agent_model)
-            _non_agent_model_cache = (time.monotonic(), config)
+        if settings and settings.llm_provider and settings.llm_model:
+            config = (settings.llm_provider, settings.llm_model)
+            _llm_config_cache = (time.monotonic(), config)
             return config
 
-        env_provider = os.environ.get("NON_AGENT_PROVIDER")
-        env_model = os.environ.get("NON_AGENT_MODEL")
+        env_provider = os.environ.get("LLM_PROVIDER")
+        env_model = os.environ.get("LLM_MODEL")
         if env_provider and env_model:
             config = (env_provider, env_model)
-            _non_agent_model_cache = (time.monotonic(), config)
+            _llm_config_cache = (time.monotonic(), config)
             return config
     finally:
         db.close()
 
     config = ("ollama", "llama3.2:3b")
-    _non_agent_model_cache = (time.monotonic(), config)
+    _llm_config_cache = (time.monotonic(), config)
     return config
 
 

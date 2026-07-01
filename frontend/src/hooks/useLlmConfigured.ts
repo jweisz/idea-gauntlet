@@ -39,8 +39,7 @@ export function useLlmConfigured(): LlmConfigState {
     !settings.openai_api_key &&
     !settings.anthropic_api_key &&
     !settings.google_api_key;
-  const noModelOverride =
-    !settings.non_agent_provider && !settings.non_agent_model;
+  const noModelOverride = !settings.llm_provider && !settings.llm_model;
 
   return noKeys && noModelOverride ? "unconfigured" : "configured";
 }

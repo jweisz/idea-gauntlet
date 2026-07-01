@@ -18,7 +18,7 @@ from langchain_core.messages import (
     AIMessage,
     BaseMessage,
 )
-from ..core.llm import get_llm, get_non_agent_model_config
+from ..core.llm import get_llm, get_llm_config
 from ..core.usage import metered_ainvoke
 from ..core.deps import GuardResult
 from ..core import config
@@ -85,7 +85,7 @@ async def check_idea(idea: str) -> IdeaCheckResult:
     make the gate a no-op without ever telling the player. The route
     translates the exception into a visible "gate unavailable" state.
     """
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.0)
 
     prompt = (
@@ -226,7 +226,7 @@ async def get_agent_reply(
         )
     )
     lc_messages = _build_messages_for_llm(battle_messages, idea)
-    provider, model_name = get_non_agent_model_config()
+    provider, model_name = get_llm_config()
     llm = get_llm(provider=provider, model_name=model_name, temperature=0.8)
     response = await metered_ainvoke(
         llm, [system_msg] + lc_messages, provider=provider, model=model_name
@@ -267,7 +267,7 @@ async def score_exchange(
 
     Returns (user_damage, user_reason, agent_damage, agent_reason, guard).
     """
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.0)
 
     scoring_prompt = (
@@ -372,7 +372,7 @@ async def get_concession_message(agent: Agent, idea: str, user_message: str) -> 
     Generate a concession from the defeated boss acknowledging the player's winning argument.
     Called when the player's attack reduces the boss's HP to 0.
     """
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.9)
     prompt = (
         f"You are {agent.name}, a debate critic with this persona: {agent.role_description}\n\n"
@@ -398,7 +398,7 @@ async def get_defeat_reason(idea: str, user_message: str, agent_reply: str) -> s
     Generate a 1-2 sentence explanation of the specific flaw that cost the user the battle.
     Called only when user HP reaches zero.
     """
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.3)
     prompt = (
         f'In a debate, a user defended this idea: "{idea}"\n\n'
@@ -426,7 +426,7 @@ async def generate_boss_summary(session: GauntletSession, boss: BattleBoss) -> s
         # Boss was bypassed — no real transcript to summarise
         return "This battle was skipped — no debate transcript recorded."
 
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.5)
     lines = []
     for msg in sorted(boss.messages, key=lambda m: m.id):
@@ -454,7 +454,7 @@ async def generate_objections(
     session: GauntletSession, bosses: list[BattleBoss]
 ) -> list[dict]:
     """Grouped objections across all defeated bosses with best counterpoints."""
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.7)
 
     defeated = [b for b in bosses if b.status == "defeated"]
@@ -577,7 +577,7 @@ async def generate_defense_summary(
     if not defeated:
         return fallback
 
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.4)
     sections = []
     for boss in defeated:
@@ -615,7 +615,7 @@ async def generate_summary(session: GauntletSession, bosses: list[BattleBoss]) -
 
     All text fields are plain text — no markdown, asterisks, or pound signs.
     """
-    provider, model = get_non_agent_model_config()
+    provider, model = get_llm_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.7)
 
     defeated = [b for b in bosses if b.status == "defeated"]

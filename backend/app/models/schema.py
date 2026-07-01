@@ -40,8 +40,8 @@ class GlobalSettings(Base):
 
     default_agent_turn_budget: Mapped[int] = mapped_column(Integer, default=3)
     global_system_instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
-    non_agent_provider: Mapped[str | None] = mapped_column(String, nullable=True)
-    non_agent_model: Mapped[str | None] = mapped_column(String, nullable=True)
+    llm_provider: Mapped[str | None] = mapped_column(String, nullable=True)
+    llm_model: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Agent(Base):

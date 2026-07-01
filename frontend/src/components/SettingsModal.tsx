@@ -176,8 +176,8 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [settings, setSettings] = useState<AppSettings>({
-    non_agent_provider: null,
-    non_agent_model: null,
+    llm_provider: null,
+    llm_model: null,
     openai_api_key: false,
     anthropic_api_key: false,
     google_api_key: false,
@@ -225,7 +225,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   const selectedProvider = providers.find(
-    (p) => p.provider === settings.non_agent_provider,
+    (p) => p.provider === settings.llm_provider,
   );
   const models = selectedProvider?.models ?? [];
 
@@ -246,15 +246,15 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     const firstModel =
       providers.find((p) => p.provider === provider)?.models[0] ?? null;
     const patch = {
-      non_agent_provider: provider || null,
-      non_agent_model: firstModel,
+      llm_provider: provider || null,
+      llm_model: firstModel,
     };
     setSettings((s) => ({ ...s, ...patch }));
     await patchSettings(patch);
   };
 
   const handleModelChange = async (model: string) => {
-    const patch = { non_agent_model: model || null };
+    const patch = { llm_model: model || null };
     setSettings((s) => ({ ...s, ...patch }));
     await patchSettings(patch);
   };
@@ -420,7 +420,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     </label>
                     <select
                       style={selectStyle}
-                      value={settings.non_agent_provider ?? ""}
+                      value={settings.llm_provider ?? ""}
                       onChange={(e) =>
                         void handleProviderChange(e.target.value)
                       }
@@ -449,7 +449,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                     </label>
                     <select
                       style={selectStyle}
-                      value={settings.non_agent_model ?? ""}
+                      value={settings.llm_model ?? ""}
                       onChange={(e) => void handleModelChange(e.target.value)}
                       disabled={models.length === 0}
                     >
