@@ -105,16 +105,19 @@ def get_app_config() -> dict:
     """Feature flags surfaced to the frontend via ``GET /api/config``.
 
     Default (self-host): keys + model selection visible, no billing, players are
-    always accepted. The hosted overlay overrides this to hide key/model
-    settings, enable billing + leaderboard, and reflect the spend gate.
+    always accepted. Set LOCK_LLM_SETTINGS=true (e.g. on a Render deploy
+    configured entirely via env vars) to hide the key/model fields instead.
+    The hosted overlay overrides this wholesale to also enable billing +
+    leaderboard and reflect the spend gate.
     """
+    llm_settings_visible = not config.lock_llm_settings()
     return {
         "game_name": config.game_name(),
         "auth": "local",
         "google_client_id": "",
         "billing_enabled": False,
-        "show_api_key_settings": True,
-        "show_model_selection": True,
+        "show_api_key_settings": llm_settings_visible,
+        "show_model_selection": llm_settings_visible,
         "leaderboard_enabled": True,
         "accepting_new_players": True,
     }

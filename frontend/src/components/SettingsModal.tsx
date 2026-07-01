@@ -373,7 +373,9 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </select>
         </div>
 
-        <div style={{ borderTop: "2px solid rgba(255,255,255,0.08)" }} />
+        {(showModels || showKeys) && (
+          <div style={{ borderTop: "2px solid rgba(255,255,255,0.08)" }} />
+        )}
 
         {loading ? (
           <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)" }}>

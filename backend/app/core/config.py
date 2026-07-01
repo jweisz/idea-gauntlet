@@ -34,6 +34,22 @@ def is_hosted() -> bool:
     return DEPLOYMENT_MODE == "hosted"
 
 
+def lock_llm_settings() -> bool:
+    """Whether the LLM provider/model/API-key fields should be hidden from Settings.
+
+    Set LOCK_LLM_SETTINGS=true for a self-host deploy (e.g. Render) where the
+    operator configures the LLM entirely via env vars — API key(s) plus
+    NON_AGENT_PROVIDER/NON_AGENT_MODEL — and doesn't want it visible or
+    editable by whoever opens the app. Defaults to false so a local/self-host
+    run with no env vars set still gets the in-app onboarding UI.
+    """
+    return os.environ.get("LOCK_LLM_SETTINGS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
 _DEFAULT_GAME_NAME = "Idea Gauntlet"
 
 # Fallbacks if config.toml is missing/unreadable, so the app still boots.

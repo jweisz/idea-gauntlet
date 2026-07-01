@@ -22,9 +22,18 @@ services:
           property: connectionString
       - key: ALLOWED_ORIGINS
         value: https://your-frontend-domain
-      # Provide at least one LLM key, or enter keys in the in-app Settings modal.
+      # This blueprint locks the LLM config to these env vars (see
+      # LOCK_LLM_SETTINGS below) — fill in a provider key and the model to use.
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: NON_AGENT_PROVIDER
+        value: anthropic
+      - key: NON_AGENT_MODEL
+        sync: false
+      # Hides the API key / model fields in the in-app Settings modal, since
+      # they're fully configured above. Only BGM music remains user-editable.
+      - key: LOCK_LLM_SETTINGS
+        value: "true"
 
   - type: web
     name: idea-gauntlet-web
