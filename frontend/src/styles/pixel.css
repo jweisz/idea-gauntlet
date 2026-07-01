@@ -23,6 +23,13 @@
   --nes-gray: #6d6d6d;
   --nes-darkgray: #2a2a2a;
 
+  /* Darker shades of the button fill colors above, for drop shadows — a
+     shadow the same color as the button face it's attached to reads as
+     "no shadow at all" against the black background. */
+  --nes-red-shadow: #6b1414;
+  --nes-green-shadow: #115826;
+  --nes-yellow-shadow: #7a6221;
+
   --pixel-border: 4px solid var(--nes-white);
   --pixel-shadow: 4px 4px 0 var(--nes-black);
 
@@ -117,17 +124,17 @@ body::after {
 .pixel-btn--red {
   background: var(--nes-red);
   border-color: var(--nes-red);
-  box-shadow: 4px 4px 0 var(--nes-red);
+  box-shadow: 4px 4px 0 var(--nes-red-shadow);
 }
 .pixel-btn--green {
   background: var(--nes-green);
   border-color: var(--nes-green);
-  box-shadow: 4px 4px 0 var(--nes-green);
+  box-shadow: 4px 4px 0 var(--nes-green-shadow);
 }
 .pixel-btn--yellow {
   background: var(--nes-orange);
   border-color: var(--nes-yellow);
-  box-shadow: 4px 4px 0 var(--nes-yellow);
+  box-shadow: 4px 4px 0 var(--nes-yellow-shadow);
 }
 
 /* ---- Pixel input ---- */
