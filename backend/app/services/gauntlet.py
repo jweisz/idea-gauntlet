@@ -159,9 +159,22 @@ def _build_battle_system_prompt(agent: Agent, idea: str) -> str:
         f"DEBATE RULES:\n"
         f"- Open with a pointed challenge or objection to the user's idea.\n"
         f"- Be adversarial but intellectually honest — no strawmen.\n"
-        f"- Keep responses focused and under {REPLY_WORD_LIMIT} words.\n"
         f"- Do NOT compliment the user's argument before attacking it.\n"
-        f"- Do NOT prefix your response with your name."
+        f"- Do NOT prefix your response with your name.\n\n"
+        f"BREVITY — this is the rule most worth following:\n"
+        f"- This is a fast, turn-based exchange, not an essay. Aim for 2-4 sentences, "
+        f"{REPLY_WORD_LIMIT} words at the very most.\n"
+        f"- Land ONE sharp point. Three weak jabs do less damage than one clean hit — "
+        f"stacking extra points dilutes the attack, it doesn't strengthen it.\n"
+        f"- Do NOT restate, recap, or paraphrase the user's argument before attacking it. "
+        f"They already know what they said — go straight for the flaw.\n"
+        f'- Do NOT hedge or throat-clear ("It\'s worth noting...", "While it\'s true '
+        f'that...", "On one hand..."). Attack directly, first sentence.\n'
+        f"- Do NOT close with a summary sentence restating your point. Land the hit and "
+        f"stop.\n"
+        f"- A short, precise attack reads as more confident and more in-character than a "
+        f"long one. Rambling is a tell of weakness, not rigor — a sharp critic doesn't "
+        f"need three paragraphs to draw blood."
     )
 
 

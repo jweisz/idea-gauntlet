@@ -43,7 +43,7 @@ _DEFAULT_GAMEPLAY: dict[str, Any] = {
     "max_damage": 40,
     "max_idea_chars": 600,
     "max_attack_chars": 2000,
-    "reply_word_limit": 150,
+    "reply_word_limit": 90,
     "difficulty": {
         "easy": {"user": 1.5, "boss": 0.75},
         "normal": {"user": 1.2, "boss": 0.9},

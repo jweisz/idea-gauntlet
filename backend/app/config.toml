@@ -14,7 +14,7 @@ min_damage = 12          # even a weak argument makes a dent
 max_damage = 40          # a devastating argument deals significant HP
 max_idea_chars = 600     # input cap on the idea
 max_attack_chars = 2000  # input cap on each battle message
-reply_word_limit = 150   # target length for an agent's battle reply
+reply_word_limit = 90    # target length for an agent's battle reply
 
 # Difficulty multipliers applied after scoring.
 #   user = multiplier on damage the player deals to the boss
