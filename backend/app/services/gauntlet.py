@@ -188,11 +188,21 @@ async def get_agent_reply(
     provider_override: str | None = None,
     model_override: str | None = None,
 ) -> str:
-    """Call the agent LLM and return its battle reply."""
+    """Call the agent LLM and return its battle reply.
+
+    Defaults to the global model configured in Settings (same resolution as
+    every other LLM call — the gatekeeper, scoring, summaries), not the
+    agent's own `provider`/`model` columns: those only exist for the
+    Agent CRUD API and have no UI to set them per-critic, so leaving them as
+    the default here would silently ignore whatever the player configured.
+    provider_override/model_override (per-battle, from BattleBoss) still win
+    when set, so a future per-critic override UI can slot back in cleanly.
+    """
     system_msg = SystemMessage(content=_build_battle_system_prompt(agent, idea))
     lc_messages = _build_messages_for_llm(battle_messages, idea)
-    provider = provider_override or agent.provider
-    model_name = model_override or agent.model
+    default_provider, default_model = get_non_agent_model_config()
+    provider = provider_override or default_provider
+    model_name = model_override or default_model
     llm = get_llm(provider=provider, model_name=model_name, temperature=0.8)
     response = await metered_ainvoke(
         llm, [system_msg] + lc_messages, provider=provider, model=model_name
