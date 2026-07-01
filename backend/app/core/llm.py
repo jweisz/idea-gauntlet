@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Any
 from langchain_litellm import ChatLiteLLM
 from sqlalchemy.orm import Session
 from ..models.db import SessionLocal
@@ -32,7 +33,7 @@ def invalidate_settings_cache() -> None:
 
 def get_settings_from_db():
     global _settings_cache
-    if _cache_valid(_settings_cache):
+    if _settings_cache is not None and _cache_valid(_settings_cache):
         return _settings_cache[1]
 
     db: Session = SessionLocal()
@@ -70,7 +71,7 @@ def get_non_agent_model_config() -> tuple[str, str]:
     4) Local-safe default (ollama/llama3.2:3b)
     """
     global _non_agent_model_cache
-    if _cache_valid(_non_agent_model_cache):
+    if _non_agent_model_cache is not None and _cache_valid(_non_agent_model_cache):
         return _non_agent_model_cache[1]
 
     db: Session = SessionLocal()
@@ -128,7 +129,11 @@ def get_llm(provider: str, model_name: str, temperature: float = 0.7):
         else f"{provider}/{model_name}"
     )
 
-    kwargs = {"model": full_model_string, "temperature": temperature, "streaming": True}
+    kwargs: dict[str, Any] = {
+        "model": full_model_string,
+        "temperature": temperature,
+        "streaming": True,
+    }
 
     # Ollama: use dynamic URL from DB if available, else default
     if provider == "ollama":

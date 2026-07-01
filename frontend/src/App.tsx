@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   isAuthenticated,
   buildLocalDevSession,
@@ -24,7 +31,14 @@ import WaitlistScreen from "./screens/WaitlistScreen";
 
 // One track per boss slot (8 slots → 7 unique tracks, slot 7 wraps to arena)
 const BATTLE_TRACKS = [
-  "arena", "shadow", "boss-rush", "voltage", "thunder", "mirage", "starlight", "arena",
+  "arena",
+  "shadow",
+  "boss-rush",
+  "voltage",
+  "thunder",
+  "mirage",
+  "starlight",
+  "arena",
 ];
 
 function AudioManager() {

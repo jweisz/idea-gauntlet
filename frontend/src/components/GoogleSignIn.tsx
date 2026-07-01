@@ -9,9 +9,21 @@ import { useGameName } from "../store/configStore";
  * exchanges the credential for an app JWT via the hosted /api/auth/google
  * endpoint.
  */
+interface GoogleIdentityServices {
+  accounts: {
+    id: {
+      initialize(config: {
+        client_id: string;
+        callback: (response: { credential: string }) => void;
+      }): void;
+      renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+    };
+  };
+}
+
 declare global {
   interface Window {
-    google?: any;
+    google?: GoogleIdentityServices;
   }
 }
 
@@ -97,10 +109,18 @@ export default function GoogleSignIn({
       >
         {gameName.toUpperCase()}
       </h1>
-      <p style={{ fontSize: "0.8rem", color: "var(--nes-gray)", lineHeight: 2 }}>
+      <p
+        style={{ fontSize: "0.8rem", color: "var(--nes-gray)", lineHeight: 2 }}
+      >
         DEFEND YOUR IDEA AGAINST 8 CRITICS
       </p>
-      <p style={{ fontSize: "0.7rem", color: "var(--nes-yellow)", lineHeight: 2 }}>
+      <p
+        style={{
+          fontSize: "0.7rem",
+          color: "var(--nes-yellow)",
+          lineHeight: 2,
+        }}
+      >
         Sign in to play
       </p>
       <div ref={btnRef} style={{ display: "flex", justifyContent: "center" }} />

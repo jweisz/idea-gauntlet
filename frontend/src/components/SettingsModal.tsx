@@ -150,7 +150,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     void loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -269,11 +269,24 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         {/* BGM Track — always visible, no loading required */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div>
-            <div style={{ fontSize: "0.7rem", color: "var(--nes-yellow)", marginBottom: 4 }}>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                color: "var(--nes-yellow)",
+                marginBottom: 4,
+              }}
+            >
               BGM TRACK
             </div>
-            <div style={{ fontSize: "0.55rem", color: "var(--nes-gray)", lineHeight: 1.8 }}>
-              AUTO plays a different track per screen. Override to lock a specific track.
+            <div
+              style={{
+                fontSize: "0.55rem",
+                color: "var(--nes-gray)",
+                lineHeight: 1.8,
+              }}
+            >
+              AUTO plays a different track per screen. Override to lock a
+              specific track.
             </div>
           </div>
           <select
@@ -283,7 +296,9 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           >
             <option value="">AUTO (per screen)</option>
             {TRACKS.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
             ))}
           </select>
         </div>
@@ -298,84 +313,86 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           <>
             {/* Judge model — hidden in hosted mode */}
             {showModels && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.7rem",
-                    color: "var(--nes-yellow)",
-                    marginBottom: 4,
-                  }}
-                >
-                  JUDGE MODEL
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "var(--nes-yellow)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    JUDGE MODEL
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.55rem",
+                      color: "var(--nes-gray)",
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    Used for debate scoring and defeat analysis
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "0.55rem",
-                    color: "var(--nes-gray)",
-                    lineHeight: 1.8,
-                  }}
-                >
-                  Used for debate scoring and defeat analysis
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                  >
+                    <label
+                      style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
+                    >
+                      PROVIDER
+                    </label>
+                    <select
+                      style={selectStyle}
+                      value={settings.non_agent_provider ?? ""}
+                      onChange={(e) => handleProviderChange(e.target.value)}
+                    >
+                      <option value="">— select —</option>
+                      {providers.map((p) => (
+                        <option key={p.provider} value={p.provider}>
+                          {p.provider}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      flex: 1,
+                      minWidth: 120,
+                    }}
+                  >
+                    <label
+                      style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
+                    >
+                      MODEL
+                    </label>
+                    <select
+                      style={selectStyle}
+                      value={settings.non_agent_model ?? ""}
+                      onChange={(e) =>
+                        setSettings((s) => ({
+                          ...s,
+                          non_agent_model: e.target.value || null,
+                        }))
+                      }
+                      disabled={models.length === 0}
+                    >
+                      <option value="">— select —</option>
+                      {models.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                >
-                  <label
-                    style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
-                  >
-                    PROVIDER
-                  </label>
-                  <select
-                    style={selectStyle}
-                    value={settings.non_agent_provider ?? ""}
-                    onChange={(e) => handleProviderChange(e.target.value)}
-                  >
-                    <option value="">— select —</option>
-                    {providers.map((p) => (
-                      <option key={p.provider} value={p.provider}>
-                        {p.provider}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    flex: 1,
-                    minWidth: 120,
-                  }}
-                >
-                  <label
-                    style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
-                  >
-                    MODEL
-                  </label>
-                  <select
-                    style={selectStyle}
-                    value={settings.non_agent_model ?? ""}
-                    onChange={(e) =>
-                      setSettings((s) => ({
-                        ...s,
-                        non_agent_model: e.target.value || null,
-                      }))
-                    }
-                    disabled={models.length === 0}
-                  >
-                    <option value="">— select —</option>
-                    {models.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
             )}
 
             {showModels && showKeys && (
@@ -385,100 +402,108 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             {/* API Keys — hidden in hosted mode */}
             {showKeys && (
               <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
                 <div
-                  style={{
-                    fontSize: "0.7rem",
-                    color: "var(--nes-yellow)",
-                    marginBottom: 4,
-                  }}
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
                 >
-                  API KEYS
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.55rem",
-                    color: "var(--nes-gray)",
-                    lineHeight: 1.8,
-                  }}
-                >
-                  Keys are stored on the backend only — never in the browser.
-                </div>
-              </div>
-              <KeyInput
-                label="ANTHROPIC"
-                placeholder="sk-ant-api03-..."
-                isSet={settings.anthropic_api_key}
-                value={keys.anthropic}
-                onChange={(v) => setKeys((k) => ({ ...k, anthropic: v }))}
-              />
-              <KeyInput
-                label="OPENAI"
-                placeholder="sk-proj-..."
-                isSet={settings.openai_api_key}
-                value={keys.openai}
-                onChange={(v) => setKeys((k) => ({ ...k, openai: v }))}
-              />
-              <KeyInput
-                label="GOOGLE (GEMINI)"
-                placeholder="AIzaSy..."
-                isSet={settings.google_api_key}
-                value={keys.google}
-                onChange={(v) => setKeys((k) => ({ ...k, google: v }))}
-              />
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label
-                  style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
-                >
-                  OLLAMA BASE URL
-                </label>
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={keys.ollama_url}
-                  onChange={(e) =>
-                    setKeys((k) => ({ ...k, ollama_url: e.target.value }))
-                  }
-                  placeholder={
-                    settings.ollama_base_url ?? "http://localhost:11434"
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Available providers */}
-            {providers.length > 0 && (
-              <div
-                style={{
-                  border: "2px solid var(--nes-gray)",
-                  padding: "8px 12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "0.55rem",
-                    color: "var(--nes-gray)",
-                    marginBottom: 4,
-                  }}
-                >
-                  AVAILABLE PROVIDERS
-                </div>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  {providers.map((p) => (
-                    <span
-                      key={p.provider}
-                      style={{ fontSize: "0.6rem", color: "var(--nes-green)" }}
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "var(--nes-yellow)",
+                        marginBottom: 4,
+                      }}
                     >
-                      ✓ {p.provider}
-                    </span>
-                  ))}
+                      API KEYS
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.55rem",
+                        color: "var(--nes-gray)",
+                        lineHeight: 1.8,
+                      }}
+                    >
+                      Keys are stored on the backend only — never in the
+                      browser.
+                    </div>
+                  </div>
+                  <KeyInput
+                    label="ANTHROPIC"
+                    placeholder="sk-ant-api03-..."
+                    isSet={settings.anthropic_api_key}
+                    value={keys.anthropic}
+                    onChange={(v) => setKeys((k) => ({ ...k, anthropic: v }))}
+                  />
+                  <KeyInput
+                    label="OPENAI"
+                    placeholder="sk-proj-..."
+                    isSet={settings.openai_api_key}
+                    value={keys.openai}
+                    onChange={(v) => setKeys((k) => ({ ...k, openai: v }))}
+                  />
+                  <KeyInput
+                    label="GOOGLE (GEMINI)"
+                    placeholder="AIzaSy..."
+                    isSet={settings.google_api_key}
+                    value={keys.google}
+                    onChange={(v) => setKeys((k) => ({ ...k, google: v }))}
+                  />
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                  >
+                    <label
+                      style={{ fontSize: "0.55rem", color: "var(--nes-gray)" }}
+                    >
+                      OLLAMA BASE URL
+                    </label>
+                    <input
+                      type="text"
+                      style={inputStyle}
+                      value={keys.ollama_url}
+                      onChange={(e) =>
+                        setKeys((k) => ({ ...k, ollama_url: e.target.value }))
+                      }
+                      placeholder={
+                        settings.ollama_base_url ?? "http://localhost:11434"
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+
+                {/* Available providers */}
+                {providers.length > 0 && (
+                  <div
+                    style={{
+                      border: "2px solid var(--nes-gray)",
+                      padding: "8px 12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.55rem",
+                        color: "var(--nes-gray)",
+                        marginBottom: 4,
+                      }}
+                    >
+                      AVAILABLE PROVIDERS
+                    </div>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                      {providers.map((p) => (
+                        <span
+                          key={p.provider}
+                          style={{
+                            fontSize: "0.6rem",
+                            color: "var(--nes-green)",
+                          }}
+                        >
+                          ✓ {p.provider}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

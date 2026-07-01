@@ -1,0 +1,35 @@
+# Backend hygiene tasks. Dependencies are managed with uv (see uv.lock); the
+# ruff/pytest tools come from the `dev` extra. `uv run` auto-syncs the
+# environment, so `mise run setup` is only needed to pre-warm it.
+
+[tasks.setup]
+description = "Sync the backend environment (incl. dev tools) with uv"
+run = "uv sync --extra dev"
+
+[tasks.dev]
+description = "Run the API with autoreload on :8000"
+run = "uv run uvicorn app.main:app --reload --port 8000"
+
+[tasks.format]
+description = "Auto-format with ruff"
+run = "uv run --extra dev ruff format ."
+
+[tasks.format-check]
+description = "Check formatting with ruff (no writes)"
+run = "uv run --extra dev ruff format --check ."
+
+[tasks.lint]
+description = "Lint with ruff"
+run = "uv run --extra dev ruff check ."
+
+[tasks.lint-fix]
+description = "Lint with ruff and apply safe fixes"
+run = "uv run --extra dev ruff check --fix ."
+
+[tasks.typecheck]
+description = "Type-check with mypy"
+run = "uv run --extra dev mypy"
+
+[tasks.test]
+description = "Run the test suite with pytest"
+run = "uv run --extra dev pytest"

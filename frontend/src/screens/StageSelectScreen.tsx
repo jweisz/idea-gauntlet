@@ -219,10 +219,17 @@ export default function StageSelectScreen() {
       // Patch locally first so allDefeated flips immediately without a round-trip.
       setSession({
         ...session,
-        bosses: session.bosses.map((b) => ({ ...b, status: "defeated" as const, agent_hp: 0 })),
+        bosses: session.bosses.map((b) => ({
+          ...b,
+          status: "defeated" as const,
+          agent_hp: 0,
+        })),
       });
       // Confirm with server in background.
-      gauntlet.getSession(session.id).then(setSession).catch(() => {});
+      gauntlet
+        .getSession(session.id)
+        .then(setSession)
+        .catch(() => {});
     } finally {
       setCmdRunning(false);
     }
@@ -262,9 +269,12 @@ export default function StageSelectScreen() {
     }
     // Re-fetch on mount so boss statuses are fresh (avoids stale store after battles).
     // Guard: don't overwrite a bypass result that arrived after this request started.
-    gauntlet.getSession(session.id).then((s) => {
-      if (!bypassedRef.current) setSession(s);
-    }).catch(() => {});
+    gauntlet
+      .getSession(session.id)
+      .then((s) => {
+        if (!bypassedRef.current) setSession(s);
+      })
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!session) return null;

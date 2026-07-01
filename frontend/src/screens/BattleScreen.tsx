@@ -331,7 +331,10 @@ export default function BattleScreen() {
         if (result.winner === "user") {
           setMessages((prev) => [
             ...prev,
-            { role: "system", content: `★ ${boss.agent.name} has been defeated!` },
+            {
+              role: "system",
+              content: `★ ${boss.agent.name} has been defeated!`,
+            },
           ]);
         }
       }
@@ -532,115 +535,142 @@ export default function BattleScreen() {
                   animation: "fade-in 400ms ease",
                 }}
               >
-                <div style={{ flex: 1, height: 1, background: "var(--nes-yellow)", opacity: 0.35 }} />
-                <span style={{ color: "var(--nes-yellow)", whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "var(--nes-yellow)",
+                    opacity: 0.35,
+                  }}
+                />
+                <span
+                  style={{
+                    color: "var(--nes-yellow)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
                   <span style={{ fontSize: "1rem" }}>⭐</span>
-                  <span style={{ fontSize: "0.6rem" }}>{msg.content.replace(/^★ /, "")}</span>
+                  <span style={{ fontSize: "0.6rem" }}>
+                    {msg.content.replace(/^★ /, "")}
+                  </span>
                 </span>
-                <div style={{ flex: 1, height: 1, background: "var(--nes-yellow)", opacity: 0.35 }} />
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "var(--nes-yellow)",
+                    opacity: 0.35,
+                  }}
+                />
               </div>
             );
           }
 
           return (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              flexDirection: msg.role === "user" ? "row-reverse" : "row",
-              gap: 8,
-              alignItems: "flex-start",
-            }}
-          >
-            <div style={{ fontSize: 18, flexShrink: 0, marginTop: 4 }}>
-              {msg.role === "user" ? "🧑" : boss.agent.emoji}
-            </div>
             <div
+              key={i}
               style={{
-                maxWidth: "75%",
                 display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                alignItems: msg.role === "user" ? "flex-end" : "flex-start",
+                flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                gap: 8,
+                alignItems: "flex-start",
               }}
             >
+              <div style={{ fontSize: 18, flexShrink: 0, marginTop: 4 }}>
+                {msg.role === "user" ? "🧑" : boss.agent.emoji}
+              </div>
               <div
-                className="dialog-box"
                 style={{
-                  fontSize: "0.75rem",
-                  lineHeight: 1.9,
-                  borderColor:
-                    msg.role === "user" ? "var(--nes-cyan)" : "var(--nes-red)",
-                  boxShadow:
-                    msg.role === "user"
-                      ? "3px 3px 0 var(--nes-cyan)"
-                      : "3px 3px 0 var(--nes-red)",
+                  maxWidth: "75%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  alignItems: msg.role === "user" ? "flex-end" : "flex-start",
                 }}
               >
-                {msg.content}
-              </div>
-              {/* Damage chip — only shown when damage is known and non-zero */}
-              {msg.damage != null && msg.damage > 0 && (
                 <div
+                  className="dialog-box"
                   style={{
-                    fontSize: "0.6rem",
-                    color:
+                    fontSize: "0.75rem",
+                    lineHeight: 1.9,
+                    borderColor:
                       msg.role === "user"
-                        ? "var(--nes-green)"
+                        ? "var(--nes-cyan)"
                         : "var(--nes-red)",
-                    padding: "4px 8px",
-                    border: `2px solid ${msg.role === "user" ? "var(--nes-green)" : "var(--nes-red)"}`,
-                    background:
+                    boxShadow:
                       msg.role === "user"
-                        ? "rgba(34,177,76,0.12)"
-                        : "rgba(214,40,40,0.12)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3,
+                        ? "3px 3px 0 var(--nes-cyan)"
+                        : "3px 3px 0 var(--nes-red)",
                   }}
                 >
-                  <span>
-                    {msg.role === "user"
-                      ? `⚔ -${msg.damage} HP to ${boss.agent.name}`
-                      : `💥 -${msg.damage} HP to you`}
-                  </span>
-                  {msg.damage_reason &&
-                    (() => {
-                      const [synthesis, subscores] =
-                        msg.damage_reason.split("\n");
-                      return (
-                        <>
-                          <span
-                            style={{
-                              color:
-                                msg.role === "user"
-                                  ? "rgba(34,177,76,0.75)"
-                                  : "rgba(214,40,40,0.75)",
-                              fontSize: "0.55rem",
-                            }}
-                          >
-                            {synthesis}
-                          </span>
-                          {subscores && (
+                  {msg.content}
+                </div>
+                {/* Damage chip — only shown when damage is known and non-zero */}
+                {msg.damage != null && msg.damage > 0 && (
+                  <div
+                    style={{
+                      fontSize: "0.6rem",
+                      color:
+                        msg.role === "user"
+                          ? "var(--nes-green)"
+                          : "var(--nes-red)",
+                      padding: "4px 8px",
+                      border: `2px solid ${msg.role === "user" ? "var(--nes-green)" : "var(--nes-red)"}`,
+                      background:
+                        msg.role === "user"
+                          ? "rgba(34,177,76,0.12)"
+                          : "rgba(214,40,40,0.12)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 3,
+                    }}
+                  >
+                    <span>
+                      {msg.role === "user"
+                        ? `⚔ -${msg.damage} HP to ${boss.agent.name}`
+                        : `💥 -${msg.damage} HP to you`}
+                    </span>
+                    {msg.damage_reason &&
+                      (() => {
+                        const [synthesis, subscores] =
+                          msg.damage_reason.split("\n");
+                        return (
+                          <>
                             <span
                               style={{
                                 color:
                                   msg.role === "user"
-                                    ? "rgba(34,177,76,0.45)"
-                                    : "rgba(214,40,40,0.45)",
-                                fontSize: "0.48rem",
+                                    ? "rgba(34,177,76,0.75)"
+                                    : "rgba(214,40,40,0.75)",
+                                fontSize: "0.55rem",
                               }}
                             >
-                              {subscores}
+                              {synthesis}
                             </span>
-                          )}
-                        </>
-                      );
-                    })()}
-                </div>
-              )}
+                            {subscores && (
+                              <span
+                                style={{
+                                  color:
+                                    msg.role === "user"
+                                      ? "rgba(34,177,76,0.45)"
+                                      : "rgba(214,40,40,0.45)",
+                                  fontSize: "0.48rem",
+                                }}
+                              >
+                                {subscores}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
           );
         })}
 

@@ -1,5 +1,4 @@
-// Reads the same auth session key as the main frontend.
-// If the user has logged in there, we inherit the token here.
+// Lightweight client-side auth session, persisted in localStorage.
 
 export interface AuthSession {
   accessToken: string | null;
@@ -8,7 +7,7 @@ export interface AuthSession {
   mode: "local-dev" | "jwt";
 }
 
-const AUTH_SESSION_KEY = "tft_arena_auth_session";
+const AUTH_SESSION_KEY = "idea_gauntlet_auth_session";
 
 export function getAuthSession(): AuthSession | null {
   try {

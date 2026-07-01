@@ -104,8 +104,7 @@ const SELF_HOST_CONFIG: AppConfig = {
 
 export const configApi = {
   // Falls back to permissive self-host flags if the endpoint is unavailable.
-  get: () =>
-    apiJson<AppConfig>("/api/config").catch(() => SELF_HOST_CONFIG),
+  get: () => apiJson<AppConfig>("/api/config").catch(() => SELF_HOST_CONFIG),
 };
 
 // --- Hosted-only API surface (endpoints exist only in the hosted deployment) ---
@@ -250,7 +249,7 @@ export const gauntlet = {
     idea: string,
     agent_ids: number[],
     model_overrides?: Record<number, { provider: string; model: string }>,
-    difficulty: Difficulty = "difficult",
+    difficulty: Difficulty = "normal",
   ) =>
     apiJson<SessionOut>("/api/gauntlet/sessions", {
       method: "POST",
@@ -258,8 +257,7 @@ export const gauntlet = {
       body: JSON.stringify({ idea, agent_ids, model_overrides, difficulty }),
     }),
 
-  listSessions: () =>
-    apiJson<SessionListItem[]>("/api/gauntlet/sessions"),
+  listSessions: () => apiJson<SessionListItem[]>("/api/gauntlet/sessions"),
 
   getSession: (id: number) =>
     apiJson<SessionOut>(`/api/gauntlet/sessions/${id}`),

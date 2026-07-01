@@ -10,7 +10,13 @@ Handles:
 
 import json
 import logging
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from typing import Any
+from langchain_core.messages import (
+    SystemMessage,
+    HumanMessage,
+    AIMessage,
+    BaseMessage,
+)
 from ..core.llm import get_llm, get_non_agent_model_config
 from ..core.usage import metered_ainvoke
 from ..core.deps import GuardResult
@@ -38,7 +44,9 @@ REPLY_WORD_LIMIT: int = _GAMEPLAY["reply_word_limit"]
 DIFFICULTY_MULTIPLIERS: dict[str, dict[str, float]] = _GAMEPLAY["difficulty"]
 
 
-def apply_difficulty(user_damage: int, agent_damage: int, difficulty: str) -> tuple[int, int]:
+def apply_difficulty(
+    user_damage: int, agent_damage: int, difficulty: str
+) -> tuple[int, int]:
     mults = DIFFICULTY_MULTIPLIERS.get(difficulty, DIFFICULTY_MULTIPLIERS["difficult"])
     return round(user_damage * mults["user"]), round(agent_damage * mults["boss"])
 
@@ -71,7 +79,9 @@ def _build_messages_for_llm(
     opening_idea: str,
 ) -> list:
     """Convert stored BattleMessage rows to LangChain message objects."""
-    lc_messages = [HumanMessage(content=f"I want to defend this idea: {opening_idea}")]
+    lc_messages: list[BaseMessage] = [
+        HumanMessage(content=f"I want to defend this idea: {opening_idea}")
+    ]
     for msg in battle_messages:
         if msg.role == "user":
             lc_messages.append(HumanMessage(content=msg.content))
@@ -106,7 +116,9 @@ def _subscores_to_damage(ev: int, lo: int, en: int, no: int) -> int:
 
 
 def _format_reason(synthesis: str, ev: int, lo: int, en: int, no: int) -> str:
-    return f"{synthesis}\n(Evidence: {ev}, Logic: {lo}, Engagement: {en}, Novelty: {no})"
+    return (
+        f"{synthesis}\n(Evidence: {ev}, Logic: {lo}, Engagement: {en}, Novelty: {no})"
+    )
 
 
 async def score_exchange(
@@ -180,8 +192,8 @@ async def score_exchange(
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
         s = json.loads(raw)
 
-        def clamp(v: object) -> int:
-            return max(1, min(10, int(v)))  # type: ignore[arg-type]
+        def clamp(v: Any) -> int:
+            return max(1, min(10, int(v)))
 
         u_ev, u_lo, u_en, u_no = (
             clamp(s.get("user_evidence", 5)),
@@ -313,7 +325,9 @@ async def generate_boss_summary(session: GauntletSession, boss: BattleBoss) -> s
         return "No summary available."
 
 
-async def generate_objections(session: GauntletSession, bosses: list[BattleBoss]) -> list[dict]:
+async def generate_objections(
+    session: GauntletSession, bosses: list[BattleBoss]
+) -> list[dict]:
     """Grouped objections across all defeated bosses with best counterpoints."""
     provider, model = get_non_agent_model_config()
     llm = get_llm(provider=provider, model_name=model, temperature=0.7)
@@ -350,11 +364,11 @@ async def generate_objections(session: GauntletSession, bosses: list[BattleBoss]
         f"Use plain text only — no markdown, no asterisks, no dashes.\n\n"
         f"Return ONLY a JSON array:\n"
         f"[\n"
-        f'  {{\n'
+        f"  {{\n"
         f'    "objection": "Concise statement of the objection",\n'
         f'    "raised_by": ["name1", "name2"],\n'
         f'    "counterpoint": "Synthesis of the player\'s best counterpoint"\n'
-        f'  }}\n'
+        f"  }}\n"
         f"]\n\n"
         f"Respond with ONLY the JSON array, no surrounding text."
     )
@@ -401,16 +415,15 @@ def compute_session_stats(session: GauntletSession, bosses: list[BattleBoss]) ->
                 user_damages.append(m.damage)
 
     avg_turns = round(sum(turn_counts) / len(turn_counts), 2) if turn_counts else 0.0
-    avg_damage = round(sum(user_damages) / len(user_damages), 2) if user_damages else 0.0
+    avg_damage = (
+        round(sum(user_damages) / len(user_damages), 2) if user_damages else 0.0
+    )
 
     diff_weight = _DIFFICULTY_WEIGHT.get(session.difficulty or "difficult", 2)
     # Primary: bosses defeated. Then difficulty. Then efficiency (more damage per
     # attack, fewer turns per boss). Kept integer for stable ordering.
     score = (
-        len(defeated) * 1000
-        + diff_weight * 100
-        + round(avg_damage)
-        - round(avg_turns)
+        len(defeated) * 1000 + diff_weight * 100 + round(avg_damage) - round(avg_turns)
     )
 
     return {
@@ -506,18 +519,18 @@ async def generate_summary(session: GauntletSession, bosses: list[BattleBoss]) -
         f"FULL TRANSCRIPTS:\n{transcripts_text}\n\n"
         f"Produce a JSON object with this exact structure. "
         f"Use plain text only in all string values — no markdown, no asterisks, no pound signs, no bullet dashes:\n\n"
-        f'{{\n'
+        f"{{\n"
         f'  "per_boss": [\n'
         f'    {{"name": "critic name", "summary": "One sentence describing the strongest argument the player made in this specific conversation."}}\n'
-        f'  ],\n'
+        f"  ],\n"
         f'  "objections": [\n'
-        f'    {{\n'
+        f"    {{\n"
         f'      "objection": "Concise statement of the objection or criticism raised",\n'
         f'      "raised_by": ["name1", "name2"],\n'
         f'      "counterpoint": "Synthesis of the strongest counterpoint the player made across all conversations where this objection appeared."\n'
-        f'    }}\n'
-        f'  ]\n'
-        f'}}\n\n'
+        f"    }}\n"
+        f"  ]\n"
+        f"}}\n\n"
         f"Rules:\n"
         f'- "per_boss" must have one entry per defeated critic, in transcript order.\n'
         f'- "objections" must cover ALL distinct objections raised. Group near-identical objections together '
@@ -540,4 +553,6 @@ async def generate_summary(session: GauntletSession, bosses: list[BattleBoss]) -
         return raw
     except Exception:
         logger.warning("Summary LLM call failed or returned non-JSON", exc_info=True)
-        return json.dumps({"per_boss": [], "objections": [], "error": "Summary generation failed."})
+        return json.dumps(
+            {"per_boss": [], "objections": [], "error": "Summary generation failed."}
+        )

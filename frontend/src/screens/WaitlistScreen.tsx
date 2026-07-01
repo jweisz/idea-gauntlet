@@ -51,10 +51,18 @@ export default function WaitlistScreen() {
         {gameName.toUpperCase()}
       </h1>
 
-      <p style={{ fontSize: "0.8rem", color: "var(--nes-yellow)", lineHeight: 2 }}>
+      <p
+        style={{
+          fontSize: "0.8rem",
+          color: "var(--nes-yellow)",
+          lineHeight: 2,
+        }}
+      >
         {gameName.toUpperCase()} is not accepting new players at this time.
       </p>
-      <p style={{ fontSize: "0.7rem", color: "var(--nes-gray)", lineHeight: 2 }}>
+      <p
+        style={{ fontSize: "0.7rem", color: "var(--nes-gray)", lineHeight: 2 }}
+      >
         Sign up for notifications and we'll email you when it becomes available.
       </p>
 
@@ -63,7 +71,14 @@ export default function WaitlistScreen() {
           ✓ You're on the list — we'll be in touch.
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            width: "100%",
+          }}
+        >
           <input
             className="pixel-input"
             type="email"
@@ -77,7 +92,9 @@ export default function WaitlistScreen() {
             style={{ fontSize: "0.85rem", textAlign: "center" }}
           />
           {error && (
-            <p style={{ fontSize: "0.65rem", color: "var(--nes-red)" }}>{error}</p>
+            <p style={{ fontSize: "0.65rem", color: "var(--nes-red)" }}>
+              {error}
+            </p>
           )}
           <button
             className="pixel-btn pixel-btn--green"

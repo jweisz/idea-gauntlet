@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("BACKEND_DATA_DIR", str(BACKEND_DIR / ".data")))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-DB_FILE = DATA_DIR / "tft_arena.db"
+DB_FILE = DATA_DIR / "idea-gauntlet.db"
 DEFAULT_URL = f"sqlite:///{DB_FILE}"
 DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_URL)
 

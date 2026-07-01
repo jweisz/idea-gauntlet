@@ -22,8 +22,8 @@ Overlay wiring (in the private repo) looks like:
     app.dependency_overrides[get_app_config]         = hosted_config.hosted_config
 """
 
-from dataclasses import dataclass, field
-from fastapi import Depends, HTTPException, Request, status
+from dataclasses import dataclass
+from fastapi import Depends, Request
 
 from .security import resolve_request_auth_context
 from . import config

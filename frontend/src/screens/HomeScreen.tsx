@@ -36,7 +36,9 @@ export default function HomeScreen() {
       .listSessions()
       .then(setSessions)
       .catch((e) =>
-        setError(e instanceof ApiError ? e.detail : "Failed to load your games"),
+        setError(
+          e instanceof ApiError ? e.detail : "Failed to load your games",
+        ),
       );
     configApi.get().then((c) => {
       setLeaderboardEnabled(c.leaderboard_enabled);
@@ -93,7 +95,13 @@ export default function HomeScreen() {
         >
           {gameName.toUpperCase()}
         </h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--nes-gray)", lineHeight: 2 }}>
+        <p
+          style={{
+            fontSize: "0.875rem",
+            color: "var(--nes-gray)",
+            lineHeight: 2,
+          }}
+        >
           DEFEND YOUR IDEA AGAINST 8 CRITICS
         </p>
       </div>
@@ -131,11 +139,15 @@ export default function HomeScreen() {
         </p>
 
         {error && (
-          <p style={{ fontSize: "0.75rem", color: "var(--nes-red)" }}>{error}</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--nes-red)" }}>
+            {error}
+          </p>
         )}
 
         {!error && sessions === null && (
-          <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>LOADING…</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>
+            LOADING…
+          </p>
         )}
 
         {!error && sessions !== null && sessions.length === 0 && (
@@ -179,8 +191,9 @@ export default function HomeScreen() {
                     letterSpacing: 1,
                   }}
                 >
-                  {done ? "COMPLETE" : "IN PROGRESS"} · {s.difficulty.toUpperCase()}{" "}
-                  · {s.bosses_defeated}/{s.total_bosses} DEFEATED
+                  {done ? "COMPLETE" : "IN PROGRESS"} ·{" "}
+                  {s.difficulty.toUpperCase()} · {s.bosses_defeated}/
+                  {s.total_bosses} DEFEATED
                   {loadingId === s.id ? " · OPENING…" : ""}
                 </span>
               </button>

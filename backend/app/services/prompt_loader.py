@@ -20,7 +20,7 @@ class PromptLoader:
             self.prompts_dir = base_dir / "agents" / "presets"
 
     def list_prompts(self) -> List[Dict]:
-        prompts = []
+        prompts: List[Dict] = []
         if not self.prompts_dir.exists():
             return prompts
 

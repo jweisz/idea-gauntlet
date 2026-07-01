@@ -47,10 +47,19 @@ export default function AudioControls() {
           void getAudioContext().resume();
           toggleMusic();
         }}
-        title={musicEnabled ? "Music ON — click to mute" : "Music OFF — click to enable"}
+        title={
+          musicEnabled
+            ? "Music ON — click to mute"
+            : "Music OFF — click to enable"
+        }
       >
         <span>{musicEnabled ? "🎵" : "🔇"}</span>
-        <span style={{ fontSize: "0.65rem", color: musicEnabled ? "var(--nes-cyan)" : "var(--nes-gray)" }}>
+        <span
+          style={{
+            fontSize: "0.65rem",
+            color: musicEnabled ? "var(--nes-cyan)" : "var(--nes-gray)",
+          }}
+        >
           BGM
         </span>
       </button>
@@ -59,10 +68,17 @@ export default function AudioControls() {
       <button
         style={sfxEnabled ? active : base}
         onClick={toggleSfx}
-        title={sfxEnabled ? "SFX ON — click to mute" : "SFX OFF — click to enable"}
+        title={
+          sfxEnabled ? "SFX ON — click to mute" : "SFX OFF — click to enable"
+        }
       >
         <span>{sfxEnabled ? "🔊" : "🔕"}</span>
-        <span style={{ fontSize: "0.65rem", color: sfxEnabled ? "var(--nes-cyan)" : "var(--nes-gray)" }}>
+        <span
+          style={{
+            fontSize: "0.65rem",
+            color: sfxEnabled ? "var(--nes-cyan)" : "var(--nes-gray)",
+          }}
+        >
           SFX
         </span>
       </button>
@@ -71,14 +87,23 @@ export default function AudioControls() {
       <button
         style={
           showSettings
-            ? { ...active, borderColor: "var(--nes-yellow)", background: "rgba(245,197,66,0.1)" }
+            ? {
+                ...active,
+                borderColor: "var(--nes-yellow)",
+                background: "rgba(245,197,66,0.1)",
+              }
             : base
         }
         onClick={() => setShowSettings((s) => !s)}
         title="Settings"
       >
         <span>⚙</span>
-        <span style={{ fontSize: "0.65rem", color: showSettings ? "var(--nes-yellow)" : "var(--nes-gray)" }}>
+        <span
+          style={{
+            fontSize: "0.65rem",
+            color: showSettings ? "var(--nes-yellow)" : "var(--nes-gray)",
+          }}
+        >
           SETTINGS
         </span>
       </button>

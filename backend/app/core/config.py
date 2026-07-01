@@ -14,6 +14,7 @@ import os
 import tomllib
 from functools import lru_cache
 from importlib import resources
+from typing import Any
 
 
 # Deployment mode. The public core only ever runs as "self_host". The private
@@ -36,7 +37,7 @@ def is_hosted() -> bool:
 _DEFAULT_GAME_NAME = "Idea Gauntlet"
 
 # Fallbacks if config.toml is missing/unreadable, so the app still boots.
-_DEFAULT_GAMEPLAY = {
+_DEFAULT_GAMEPLAY: dict[str, Any] = {
     "max_hp": 100,
     "min_damage": 12,
     "max_damage": 40,
@@ -59,9 +60,7 @@ def _config() -> dict:
     pip-installed (e.g. by the overlay). Edits require a restart.
     """
     try:
-        raw = resources.files("app").joinpath("config.toml").read_text(
-            encoding="utf-8"
-        )
+        raw = resources.files("app").joinpath("config.toml").read_text(encoding="utf-8")
         return tomllib.loads(raw)
     except Exception:
         return {}

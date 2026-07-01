@@ -31,7 +31,7 @@ export default function CreditsBadge({
     setError(null);
     try {
       const { url } = await billingApi.checkout(pack);
-      window.location.href = url; // Stripe-hosted checkout
+      window.location.assign(url); // Stripe-hosted checkout
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : "Could not start checkout");
       setBusy(null);
@@ -79,9 +79,15 @@ export default function CreditsBadge({
             <h2 className="text-cyan" style={{ fontSize: "0.9rem" }}>
               💳 BUY CREDITS
             </h2>
-            <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)", lineHeight: 1.9 }}>
-              You have {info?.credits_balance ?? 0} credits. 1 credit = 1 new game
-              (resuming is free).
+            <p
+              style={{
+                fontSize: "0.65rem",
+                color: "var(--nes-gray)",
+                lineHeight: 1.9,
+              }}
+            >
+              You have {info?.credits_balance ?? 0} credits. 1 credit = 1 new
+              game (resuming is free).
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -102,12 +108,18 @@ export default function CreditsBadge({
             </div>
 
             {error && (
-              <p style={{ fontSize: "0.6rem", color: "var(--nes-red)" }}>{error}</p>
+              <p style={{ fontSize: "0.6rem", color: "var(--nes-red)" }}>
+                {error}
+              </p>
             )}
 
             <button
               className="pixel-btn"
-              style={{ fontSize: "0.65rem", padding: "10px 18px", alignSelf: "flex-end" }}
+              style={{
+                fontSize: "0.65rem",
+                padding: "10px 18px",
+                alignSelf: "flex-end",
+              }}
               onClick={() => setOpen(false)}
             >
               CLOSE

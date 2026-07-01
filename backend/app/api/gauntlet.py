@@ -46,9 +46,11 @@ from ..services.gauntlet import (
     MAX_IDEA_CHARS,
     MAX_ATTACK_CHARS,
 )
+
 # Imported as a module (not by-name) so the hosted overlay's override of
 # ``on_guard_result`` is picked up at call time.
 from ..core import deps
+
 
 def _attach_usage_context(
     request: Request, principal: str = Depends(get_current_principal)
@@ -190,7 +192,7 @@ class CreateSessionRequest(BaseModel):
     idea: str
     agent_ids: List[int]  # exactly 8
     model_overrides: Optional[dict] = None  # {slot_index: {provider, model}}
-    difficulty: str = "difficult"  # "easy" | "normal" | "difficult"
+    difficulty: str = "normal"  # "easy" | "normal" | "difficult"
 
 
 class SendMessageRequest(BaseModel):
@@ -264,7 +266,9 @@ def create_session(
             raise HTTPException(status_code=404, detail=f"Agent {aid} not found")
 
     valid_difficulties = {"easy", "normal", "difficult"}
-    difficulty = body.difficulty if body.difficulty in valid_difficulties else "difficult"
+    difficulty = (
+        body.difficulty if body.difficulty in valid_difficulties else "difficult"
+    )
 
     user_id = principal
     session = GauntletSession(
@@ -306,7 +310,7 @@ def create_session(
         db.query(GauntletSession)
         .options(joinedload(GauntletSession.bosses).joinedload(BattleBoss.agent))
         .filter(GauntletSession.id == session.id)
-        .first()
+        .one()
     )
     return session
 
@@ -344,7 +348,11 @@ def list_sessions(
 
 
 @router.get("/sessions/{session_id}", response_model=SessionOut)
-def get_session(session_id: int, principal: str = Depends(get_current_principal), db: Session = Depends(get_db)):
+def get_session(
+    session_id: int,
+    principal: str = Depends(get_current_principal),
+    db: Session = Depends(get_db),
+):
     user_id = principal
     session = (
         db.query(GauntletSession)
@@ -548,7 +556,9 @@ async def battle_message(
     # If the player's attack kills the boss, replace the agent's reply with a concession
     # and cancel their counter-attack — a defeated boss doesn't get a last shot.
     if boss.agent_hp - user_damage <= 0:
-        agent_reply = await get_concession_message(boss.agent, session.idea, user_content)
+        agent_reply = await get_concession_message(
+            boss.agent, session.idea, user_content
+        )
         agent_damage = 0
         agent_damage_reason = None
 
@@ -821,7 +831,9 @@ async def publish_to_leaderboard(
         )
 
     defense_summary = await generate_defense_summary(session, session.bosses)
-    display_name = (principal.split("@")[0] if principal else "anonymous") or "anonymous"
+    display_name = (
+        principal.split("@")[0] if principal else "anonymous"
+    ) or "anonymous"
 
     entry = (
         db.query(LeaderboardEntry)

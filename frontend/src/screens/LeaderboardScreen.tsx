@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  leaderboardApi,
-  ApiError,
-  type LeaderboardEntryOut,
-} from "../lib/api";
+import { leaderboardApi, ApiError, type LeaderboardEntryOut } from "../lib/api";
 import { useChiptune } from "../hooks/useChiptune";
 
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -24,7 +20,9 @@ export default function LeaderboardScreen() {
       .list()
       .then(setEntries)
       .catch((e) =>
-        setError(e instanceof ApiError ? e.detail : "Failed to load leaderboard"),
+        setError(
+          e instanceof ApiError ? e.detail : "Failed to load leaderboard",
+        ),
       );
   }, []);
 
@@ -41,7 +39,11 @@ export default function LeaderboardScreen() {
     >
       <button
         className="pixel-btn"
-        style={{ alignSelf: "flex-start", fontSize: "0.75rem", padding: "8px 14px" }}
+        style={{
+          alignSelf: "flex-start",
+          fontSize: "0.75rem",
+          padding: "8px 14px",
+        }}
         onClick={() => {
           blip();
           navigate("/");
@@ -61,7 +63,9 @@ export default function LeaderboardScreen() {
         <p style={{ fontSize: "0.75rem", color: "var(--nes-red)" }}>{error}</p>
       )}
       {!error && entries === null && (
-        <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>LOADING…</p>
+        <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>
+          LOADING…
+        </p>
       )}
       {!error && entries !== null && entries.length === 0 && (
         <p style={{ fontSize: "0.75rem", color: "var(--nes-gray)" }}>
@@ -97,7 +101,9 @@ export default function LeaderboardScreen() {
               </span>
             </div>
 
-            <div style={{ fontSize: "0.75rem", lineHeight: 1.6 }}>“{e.idea}”</div>
+            <div style={{ fontSize: "0.75rem", lineHeight: 1.6 }}>
+              “{e.idea}”
+            </div>
             <div
               style={{
                 fontSize: "0.65rem",
@@ -115,11 +121,16 @@ export default function LeaderboardScreen() {
                 letterSpacing: 1,
               }}
             >
-              <span style={{ color: DIFFICULTY_COLOR[e.difficulty] ?? "var(--nes-gray)" }}>
+              <span
+                style={{
+                  color: DIFFICULTY_COLOR[e.difficulty] ?? "var(--nes-gray)",
+                }}
+              >
                 {e.difficulty.toUpperCase()}
               </span>{" "}
               · {e.bosses_defeated}/{e.total_bosses} DEFEATED ·{" "}
-              {e.avg_turns_per_boss} TURNS/BOSS · {e.avg_damage_per_attack} DMG/HIT
+              {e.avg_turns_per_boss} TURNS/BOSS · {e.avg_damage_per_attack}{" "}
+              DMG/HIT
             </div>
 
             {e.defeated_bosses.length > 0 && (

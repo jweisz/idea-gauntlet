@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from . import config
 
 # In production this should be stored safely in env vars
-_DEFAULT_SECRET_KEY = "super-secret-tft-arena-key-for-local-dev"
+_DEFAULT_SECRET_KEY = "super-secret-idea-gauntlet-key-for-local-dev"
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", _DEFAULT_SECRET_KEY)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days

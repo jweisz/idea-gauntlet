@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gauntlet, configApi, ApiError } from "../lib/api";
 import type { BossSummaryEntry, ObjectionEntry } from "../lib/api";
@@ -14,7 +14,8 @@ interface SummaryData {
 function parseSummary(raw: string): SummaryData | null {
   try {
     const data = JSON.parse(raw) as SummaryData;
-    if (Array.isArray(data.per_boss) && Array.isArray(data.objections)) return data;
+    if (Array.isArray(data.per_boss) && Array.isArray(data.objections))
+      return data;
     return null;
   } catch {
     return null;
@@ -65,14 +66,18 @@ export default function SummaryScreen() {
   // If session.summary already exists, parse it immediately
   const existing = session?.summary ? parseSummary(session.summary) : null;
 
-  const [perBossMap, setPerBossMap] = useState<Record<string, BossSummaryEntry>>(
-    existing ? Object.fromEntries(existing.per_boss.map((e) => [e.name, e])) : {},
+  const [perBossMap, setPerBossMap] = useState<
+    Record<string, BossSummaryEntry>
+  >(
+    existing
+      ? Object.fromEntries(existing.per_boss.map((e) => [e.name, e]))
+      : {},
   );
-  const [objections, setObjections] = useState<ObjectionEntry[]>(existing?.objections ?? []);
+  const [objections, setObjections] = useState<ObjectionEntry[]>(
+    existing?.objections ?? [],
+  );
   const [objectionsLoading, setObjectionsLoading] = useState(!existing);
   const [error, setError] = useState<string | null>(null);
-  // How many boss summaries are still in-flight
-  const pendingRef = useRef(0);
 
   // Leaderboard publish state
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
@@ -98,9 +103,11 @@ export default function SummaryScreen() {
       return;
     }
 
-    const defeatedBosses = session.bosses.filter((b) => b.status === "defeated");
+    const defeatedBosses = session.bosses.filter(
+      (b) => b.status === "defeated",
+    );
     if (defeatedBosses.length === 0) {
-      setError("No defeated bosses.");
+      // Nothing to summarize — surfaced as a derived message at render time.
       return;
     }
 
@@ -132,20 +139,25 @@ export default function SummaryScreen() {
       .finally(() => setObjectionsLoading(false));
 
     // When everything settles, assemble ordered JSON and store
-    void Promise.allSettled([...bossPromises, objectionsPromise]).then(async () => {
-      // Sort per-boss results to match the original boss order
-      const ordered = defeatedBosses
-        .map((b) => collectedBosses.find((e) => e.name === b.agent.name))
-        .filter(Boolean) as BossSummaryEntry[];
+    void Promise.allSettled([...bossPromises, objectionsPromise]).then(
+      async () => {
+        // Sort per-boss results to match the original boss order
+        const ordered = defeatedBosses
+          .map((b) => collectedBosses.find((e) => e.name === b.agent.name))
+          .filter(Boolean) as BossSummaryEntry[];
 
-      const data = JSON.stringify({ per_boss: ordered, objections: collectedObjections });
-      try {
-        await gauntlet.storeSummary(session.id, data);
-      } catch {
-        // Non-critical — the display already shows the data
-      }
-      unlock();
-    });
+        const data = JSON.stringify({
+          per_boss: ordered,
+          objections: collectedObjections,
+        });
+        try {
+          await gauntlet.storeSummary(session.id, data);
+        } catch {
+          // Non-critical — the display already shows the data
+        }
+        unlock();
+      },
+    );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!session) return null;
@@ -159,6 +171,9 @@ export default function SummaryScreen() {
       ? { per_boss: perBoss, objections }
       : null;
 
+  const displayError =
+    error ?? (defeatedBosses.length === 0 ? "No defeated bosses." : null);
+
   const handleNewGame = () => {
     blip();
     clearSession();
@@ -168,7 +183,10 @@ export default function SummaryScreen() {
   const handleDownload = () => {
     if (!summaryData) return;
     const content = buildMarkdown(session.idea, summaryData);
-    const slug = session.idea.slice(0, 32).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const slug = session.idea
+      .slice(0, 32)
+      .replace(/[^a-z0-9]+/gi, "-")
+      .toLowerCase();
     downloadMarkdown(`idea-gauntlet-${slug}.md`, content);
   };
 
@@ -184,14 +202,19 @@ export default function SummaryScreen() {
     }
   };
 
-  const canPublish =
-    leaderboardEnabled && defeatedBosses.length > 0;
+  const canPublish = leaderboardEnabled && defeatedBosses.length > 0;
 
   return (
-    <div className="screen" style={{ gap: 32, maxWidth: 720, margin: "0 auto" }}>
+    <div
+      className="screen"
+      style={{ gap: 32, maxWidth: 720, margin: "0 auto" }}
+    >
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 64, marginBottom: 12 }}>⭐</div>
-        <h1 className="text-yellow animate-glow" style={{ fontSize: "1.1rem", marginBottom: 8 }}>
+        <h1
+          className="text-yellow animate-glow"
+          style={{ fontSize: "1.1rem", marginBottom: 8 }}
+        >
           IDEA MASTERED
         </h1>
         <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)" }}>
@@ -200,25 +223,57 @@ export default function SummaryScreen() {
       </div>
 
       {/* Original idea */}
-      <div className="pixel-box pixel-box--yellow" style={{ width: "100%", textAlign: "center" }}>
-        <p style={{ fontSize: "0.6rem", color: "var(--nes-yellow)", marginBottom: 8 }}>YOUR IDEA:</p>
+      <div
+        className="pixel-box pixel-box--yellow"
+        style={{ width: "100%", textAlign: "center" }}
+      >
+        <p
+          style={{
+            fontSize: "0.6rem",
+            color: "var(--nes-yellow)",
+            marginBottom: 8,
+          }}
+        >
+          YOUR IDEA:
+        </p>
         <p style={{ fontSize: "0.75rem", lineHeight: 2 }}>"{session.idea}"</p>
       </div>
 
       {/* Summary */}
       <div className="pixel-box" style={{ width: "100%" }}>
-        <p style={{ fontSize: "0.7rem", color: "var(--nes-cyan)", marginBottom: 16 }}>
+        <p
+          style={{
+            fontSize: "0.7rem",
+            color: "var(--nes-cyan)",
+            marginBottom: 16,
+          }}
+        >
           FINAL SYNTHESIS:
         </p>
 
-        {error && (
-          <p style={{ fontSize: "0.7rem", color: "var(--nes-red)", marginBottom: 12 }}>{error}</p>
+        {displayError && (
+          <p
+            style={{
+              fontSize: "0.7rem",
+              color: "var(--nes-red)",
+              marginBottom: 12,
+            }}
+          >
+            {displayError}
+          </p>
         )}
 
         {/* Per-boss recap — fills in as each boss resolves, in original boss order */}
-        {(perBoss.length > 0 || (!session.summary && defeatedBosses.length > 0)) && (
+        {(perBoss.length > 0 ||
+          (!session.summary && defeatedBosses.length > 0)) && (
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: "0.65rem", color: "var(--nes-yellow)", marginBottom: 12 }}>
+            <p
+              style={{
+                fontSize: "0.65rem",
+                color: "var(--nes-yellow)",
+                marginBottom: 12,
+              }}
+            >
               PER-BATTLE RECAP:
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -226,11 +281,29 @@ export default function SummaryScreen() {
                 const entry = perBossMap[boss.agent.name];
                 if (entry) {
                   return (
-                    <div key={boss.id} style={{ borderLeft: "3px solid var(--nes-cyan)", paddingLeft: 12 }}>
-                      <p style={{ fontSize: "0.6rem", color: "var(--nes-cyan)", marginBottom: 4 }}>
+                    <div
+                      key={boss.id}
+                      style={{
+                        borderLeft: "3px solid var(--nes-cyan)",
+                        paddingLeft: 12,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "0.6rem",
+                          color: "var(--nes-cyan)",
+                          marginBottom: 4,
+                        }}
+                      >
                         {boss.agent.emoji} {entry.name}
                       </p>
-                      <p style={{ fontSize: "0.7rem", lineHeight: 2, color: "var(--nes-white)" }}>
+                      <p
+                        style={{
+                          fontSize: "0.7rem",
+                          lineHeight: 2,
+                          color: "var(--nes-white)",
+                        }}
+                      >
                         {entry.summary}
                       </p>
                     </div>
@@ -238,8 +311,20 @@ export default function SummaryScreen() {
                 }
                 if (!session.summary) {
                   return (
-                    <div key={boss.id} style={{ borderLeft: "3px solid var(--nes-gray)", paddingLeft: 12 }}>
-                      <p style={{ fontSize: "0.6rem", color: "var(--nes-gray)", marginBottom: 4 }}>
+                    <div
+                      key={boss.id}
+                      style={{
+                        borderLeft: "3px solid var(--nes-gray)",
+                        paddingLeft: 12,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "0.6rem",
+                          color: "var(--nes-gray)",
+                          marginBottom: 4,
+                        }}
+                      >
                         {boss.agent.emoji} {boss.agent.name}
                       </p>
                       <p
@@ -262,7 +347,13 @@ export default function SummaryScreen() {
 
         {/* Objections synthesis */}
         <div>
-          <p style={{ fontSize: "0.65rem", color: "var(--nes-yellow)", marginBottom: 12 }}>
+          <p
+            style={{
+              fontSize: "0.65rem",
+              color: "var(--nes-yellow)",
+              marginBottom: 12,
+            }}
+          >
             OBJECTIONS & COUNTERPOINTS:
           </p>
           {objectionsLoading && !session.summary ? (
@@ -278,7 +369,13 @@ export default function SummaryScreen() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {objections.map((obj, i) => (
-                <div key={i} style={{ borderLeft: "3px solid var(--nes-gray)", paddingLeft: 12 }}>
+                <div
+                  key={i}
+                  style={{
+                    borderLeft: "3px solid var(--nes-gray)",
+                    paddingLeft: 12,
+                  }}
+                >
                   <p
                     style={{
                       fontSize: "0.65rem",
@@ -290,11 +387,23 @@ export default function SummaryScreen() {
                     {obj.objection}
                   </p>
                   {obj.raised_by.length > 0 && (
-                    <p style={{ fontSize: "0.55rem", color: "var(--nes-gray)", marginBottom: 6 }}>
+                    <p
+                      style={{
+                        fontSize: "0.55rem",
+                        color: "var(--nes-gray)",
+                        marginBottom: 6,
+                      }}
+                    >
                       raised by: {obj.raised_by.join(", ")}
                     </p>
                   )}
-                  <p style={{ fontSize: "0.65rem", lineHeight: 2, color: "var(--nes-green)" }}>
+                  <p
+                    style={{
+                      fontSize: "0.65rem",
+                      lineHeight: 2,
+                      color: "var(--nes-green)",
+                    }}
+                  >
                     {obj.counterpoint}
                   </p>
                 </div>
@@ -319,7 +428,14 @@ export default function SummaryScreen() {
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
         {summaryData && (
           <button
             className="pixel-btn"
@@ -393,7 +509,13 @@ export default function SummaryScreen() {
             <h2 className="text-cyan" style={{ fontSize: "0.9rem" }}>
               🏆 PUBLISH TO LEADERBOARD
             </h2>
-            <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)", lineHeight: 1.9 }}>
+            <p
+              style={{
+                fontSize: "0.65rem",
+                color: "var(--nes-gray)",
+                lineHeight: 1.9,
+              }}
+            >
               This is public. The following will be shared on the leaderboard:
             </p>
             <ul
@@ -408,17 +530,30 @@ export default function SummaryScreen() {
               <li>Your idea: “{session.idea}”</li>
               <li>A one-sentence summary of how you defended it</li>
               <li>The critics you defeated ({defeatedBosses.length})</li>
-              <li>Stats: difficulty, avg turns per boss, avg damage per attack</li>
+              <li>
+                Stats: difficulty, avg turns per boss, avg damage per attack
+              </li>
             </ul>
-            <p style={{ fontSize: "0.58rem", color: "var(--nes-gray)", lineHeight: 1.8 }}>
-              Your full debate transcript is NOT shared. You can remove your entry later.
+            <p
+              style={{
+                fontSize: "0.58rem",
+                color: "var(--nes-gray)",
+                lineHeight: 1.8,
+              }}
+            >
+              Your full debate transcript is NOT shared. You can remove your
+              entry later.
             </p>
 
             {publishError && (
-              <p style={{ fontSize: "0.6rem", color: "var(--nes-red)" }}>{publishError}</p>
+              <p style={{ fontSize: "0.6rem", color: "var(--nes-red)" }}>
+                {publishError}
+              </p>
             )}
 
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            <div
+              style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}
+            >
               <button
                 className="pixel-btn"
                 style={{ fontSize: "0.65rem", padding: "10px 18px" }}

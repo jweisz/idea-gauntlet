@@ -1,0 +1,78 @@
+# Top-level task runner for Idea Gauntlet.
+#
+# These tasks fan out to the per-directory mise.toml files in frontend/ and
+# backend/, so `mise run format` here runs `mise run format` in both. Run any
+# single side directly with `mise -C frontend run <task>` or
+# `mise -C backend run <task>`. See `mise tasks` for the full list.
+
+[tasks.setup]
+description = "Install dev dependencies for frontend and backend"
+run = [
+  "mise -C frontend run setup",
+  "mise -C backend run setup",
+]
+
+[tasks.format]
+description = "Auto-format frontend and backend"
+run = [
+  "mise -C frontend run format",
+  "mise -C backend run format",
+]
+
+[tasks.format-check]
+description = "Check formatting (no writes) for frontend and backend"
+run = [
+  "mise -C frontend run format-check",
+  "mise -C backend run format-check",
+]
+
+[tasks.lint]
+description = "Lint frontend and backend"
+run = [
+  "mise -C frontend run lint",
+  "mise -C backend run lint",
+]
+
+[tasks.typecheck]
+description = "Type-check frontend (tsc) and backend (mypy)"
+run = [
+  "mise -C frontend run typecheck",
+  "mise -C backend run typecheck",
+]
+
+[tasks.test]
+description = "Run frontend and backend test suites"
+run = [
+  "mise -C frontend run test",
+  "mise -C backend run test",
+]
+
+[tasks.check]
+description = "Full CI gate: format-check + lint + typecheck + test across both"
+depends = ["format-check", "lint", "typecheck", "test"]
+
+[tasks.start]
+description = "Run backend + frontend dev servers in a split tmux session"
+dir = "{{ config_root }}"
+run = """
+set -e
+session=idea-gauntlet
+if ! command -v tmux >/dev/null 2>&1; then
+  echo "tmux not found. Install it (e.g. brew install tmux), or run 'mise -C backend run dev' and 'mise -C frontend run dev' in two terminals." >&2
+  exit 1
+fi
+if ! tmux has-session -t "$session" 2>/dev/null; then
+  # Left pane: backend API. Right pane: frontend dev server. The split is
+  # vertical (a vertical divider → side-by-side panes).
+  tmux new-session -d -s "$session" -c "$PWD/backend"
+  tmux send-keys -t "$session" "mise run dev" C-m
+  tmux split-window -h -t "$session" -c "$PWD/frontend"
+  tmux send-keys -t "$session" "mise run dev" C-m
+  tmux select-pane -t "$session" -L
+fi
+if [ -n "$TMUX" ]; then
+  tmux switch-client -t "$session"
+else
+  tmux attach-session -t "$session"
+fi
+"""

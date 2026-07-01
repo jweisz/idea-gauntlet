@@ -41,7 +41,11 @@ export default function IdeaEntryScreen() {
     >
       <button
         className="pixel-btn"
-        style={{ alignSelf: "flex-start", fontSize: "0.75rem", padding: "8px 14px" }}
+        style={{
+          alignSelf: "flex-start",
+          fontSize: "0.75rem",
+          padding: "8px 14px",
+        }}
         onClick={() => {
           blip();
           navigate("/");

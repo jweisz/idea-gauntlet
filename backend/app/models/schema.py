@@ -1,15 +1,13 @@
 import datetime
 from sqlalchemy import (
-    Column,
     Integer,
     String,
-    Boolean,
     DateTime,
     ForeignKey,
     Text,
     Float,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 
 
@@ -18,28 +16,32 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
 
 
 class GlobalSettings(Base):
     __tablename__ = "global_settings"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    openai_api_key = Column(String, nullable=True)
-    anthropic_api_key = Column(String, nullable=True)
-    google_api_key = Column(String, nullable=True)
-    ollama_base_url = Column(String, default="http://host.docker.internal:11434")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
+    openai_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    anthropic_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    google_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    ollama_base_url: Mapped[str] = mapped_column(
+        String, default="http://host.docker.internal:11434"
+    )
     # Stored as JSON string
-    theme_preferences = Column(Text, nullable=True)
+    theme_preferences: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    default_agent_turn_budget = Column(Integer, default=3)
-    global_system_instruction = Column(Text, nullable=True)
-    non_agent_provider = Column(String, nullable=True)
-    non_agent_model = Column(String, nullable=True)
+    default_agent_turn_budget: Mapped[int] = mapped_column(Integer, default=3)
+    global_system_instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
+    non_agent_provider: Mapped[str | None] = mapped_column(String, nullable=True)
+    non_agent_model: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Agent(Base):
@@ -47,18 +49,19 @@ class Agent(Base):
 
     __tablename__ = "agents"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
-    sort_order = Column(Integer, default=0, nullable=False)
-    role_description = Column(Text, nullable=False)
-    relevance_instructions = Column(Text, nullable=False, default="")
-    system_prompt = Column(Text, nullable=False)
-    avatar_url = Column(String, nullable=True)
-    emoji = Column(String, default="🤖")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    role_description: Mapped[str] = mapped_column(Text)
+    relevance_instructions: Mapped[str] = mapped_column(Text, default="")
+    system_prompt: Mapped[str] = mapped_column(Text)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    emoji: Mapped[str] = mapped_column(String, default="🤖")
 
-    token_budget = Column(Integer, default=3)
-    provider = Column(String, default="openai")  # e.g. openai, anthropic
-    model = Column(String, default="gpt-4o")
+    token_budget: Mapped[int] = mapped_column(Integer, default=3)
+    # e.g. openai, anthropic
+    provider: Mapped[str] = mapped_column(String, default="openai")
+    model: Mapped[str] = mapped_column(String, default="gpt-4o")
 
 
 # ---------------------------------------------------------------------------
@@ -71,16 +74,20 @@ class GauntletSession(Base):
 
     __tablename__ = "gauntlet_sessions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)
-    idea = Column(Text, nullable=False)
-    agent_ids = Column(Text, nullable=False)  # JSON list of 8 agent IDs
-    status = Column(String, default="active", nullable=False)  # "active" | "complete"
-    difficulty = Column(String, default="difficult", nullable=False)  # "easy" | "normal" | "difficult"
-    summary = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    idea: Mapped[str] = mapped_column(Text)
+    agent_ids: Mapped[str] = mapped_column(Text)  # JSON list of 8 agent IDs
+    # "active" | "complete"
+    status: Mapped[str] = mapped_column(String, default="active")
+    # "easy" | "normal" | "difficult"
+    difficulty: Mapped[str] = mapped_column(String, default="normal")
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
 
-    bosses = relationship(
+    bosses: Mapped[list["BattleBoss"]] = relationship(
         "BattleBoss", back_populates="session", cascade="all, delete-orphan"
     )
 
@@ -90,24 +97,23 @@ class BattleBoss(Base):
 
     __tablename__ = "battle_bosses"
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("gauntlet_sessions.id"), nullable=False)
-    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=False)
-    status = Column(
-        String, default="pending", nullable=False
-    )  # "pending" | "active" | "defeated" | "failed"
-    user_hp = Column(Integer, default=100, nullable=False)
-    agent_hp = Column(Integer, default=100, nullable=False)
-    provider_override = Column(
-        String, nullable=True
-    )  # overrides agent.provider for this battle
-    model_override = Column(
-        String, nullable=True
-    )  # overrides agent.model for this battle
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("gauntlet_sessions.id"))
+    agent_id: Mapped[int] = mapped_column(Integer, ForeignKey("agents.id"))
+    # "pending" | "active" | "defeated" | "failed"
+    status: Mapped[str] = mapped_column(String, default="pending")
+    user_hp: Mapped[int] = mapped_column(Integer, default=100)
+    agent_hp: Mapped[int] = mapped_column(Integer, default=100)
+    # overrides agent.provider for this battle
+    provider_override: Mapped[str | None] = mapped_column(String, nullable=True)
+    # overrides agent.model for this battle
+    model_override: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    session = relationship("GauntletSession", back_populates="bosses")
-    agent = relationship("Agent")
-    messages = relationship(
+    session: Mapped["GauntletSession"] = relationship(
+        "GauntletSession", back_populates="bosses"
+    )
+    agent: Mapped["Agent"] = relationship("Agent")
+    messages: Mapped[list["BattleMessage"]] = relationship(
         "BattleMessage", back_populates="boss", cascade="all, delete-orphan"
     )
 
@@ -123,15 +129,19 @@ class UsageEvent(Base):
 
     __tablename__ = "usage_events"
 
-    id = Column(Integer, primary_key=True, index=True)
-    principal = Column(String, nullable=True, index=True)  # acting user, if known
-    session_id = Column(Integer, nullable=True, index=True)  # GauntletSession.id, if known
-    provider = Column(String, nullable=False)
-    model = Column(String, nullable=False)
-    input_tokens = Column(Integer, default=0, nullable=False)
-    output_tokens = Column(Integer, default=0, nullable=False)
-    est_cost_usd = Column(Float, default=0.0, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # acting user, if known
+    principal: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    # GauntletSession.id, if known
+    session_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String)
+    model: Mapped[str] = mapped_column(String)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    est_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow, index=True
+    )
 
 
 class LeaderboardEntry(Base):
@@ -144,22 +154,25 @@ class LeaderboardEntry(Base):
 
     __tablename__ = "leaderboard_entries"
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(
-        Integer, ForeignKey("gauntlet_sessions.id"), unique=True, nullable=False
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("gauntlet_sessions.id"), unique=True
     )
-    principal = Column(String, nullable=False, index=True)  # owner (for unpublish)
-    user_display_name = Column(String, nullable=False)
-    idea = Column(Text, nullable=False)
-    defense_summary = Column(Text, nullable=False)
-    defeated_bosses = Column(Text, nullable=False)  # JSON list of names
-    difficulty = Column(String, nullable=False)
-    bosses_defeated = Column(Integer, default=0, nullable=False)
-    total_bosses = Column(Integer, default=0, nullable=False)
-    avg_turns_per_boss = Column(Float, default=0.0, nullable=False)
-    avg_damage_per_attack = Column(Float, default=0.0, nullable=False)
-    score = Column(Integer, default=0, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    # owner (for unpublish)
+    principal: Mapped[str] = mapped_column(String, index=True)
+    user_display_name: Mapped[str] = mapped_column(String)
+    idea: Mapped[str] = mapped_column(Text)
+    defense_summary: Mapped[str] = mapped_column(Text)
+    defeated_bosses: Mapped[str] = mapped_column(Text)  # JSON list of names
+    difficulty: Mapped[str] = mapped_column(String)
+    bosses_defeated: Mapped[int] = mapped_column(Integer, default=0)
+    total_bosses: Mapped[int] = mapped_column(Integer, default=0)
+    avg_turns_per_boss: Mapped[float] = mapped_column(Float, default=0.0)
+    avg_damage_per_attack: Mapped[float] = mapped_column(Float, default=0.0)
+    score: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
 
 
 class BattleMessage(Base):
@@ -167,14 +180,16 @@ class BattleMessage(Base):
 
     __tablename__ = "battle_messages"
 
-    id = Column(Integer, primary_key=True, index=True)
-    boss_id = Column(Integer, ForeignKey("battle_bosses.id"), nullable=False)
-    role = Column(String, nullable=False)  # "user" | "agent"
-    content = Column(Text, nullable=False)
-    damage = Column(Integer, nullable=True)  # HP damage dealt to the opposing side
-    damage_reason = Column(
-        Text, nullable=True
-    )  # one-line judge rationale for the score
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    boss_id: Mapped[int] = mapped_column(Integer, ForeignKey("battle_bosses.id"))
+    role: Mapped[str] = mapped_column(String)  # "user" | "agent"
+    content: Mapped[str] = mapped_column(Text)
+    # HP damage dealt to the opposing side
+    damage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # one-line judge rationale for the score
+    damage_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
 
-    boss = relationship("BattleBoss", back_populates="messages")
+    boss: Mapped["BattleBoss"] = relationship("BattleBoss", back_populates="messages")

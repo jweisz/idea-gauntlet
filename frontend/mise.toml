@@ -1,0 +1,39 @@
+# Frontend hygiene tasks. These wrap the npm scripts in package.json so the
+# same task names work here as in the backend. Run `mise run setup` once to
+# install node_modules.
+
+[tasks.setup]
+description = "Install node dependencies"
+run = "npm install"
+
+[tasks.dev]
+description = "Run the Vite dev server"
+run = "npm run dev"
+
+[tasks.format]
+description = "Auto-format with prettier"
+run = "npm run format"
+
+[tasks.format-check]
+description = "Check formatting with prettier (no writes)"
+run = "npm run format:check"
+
+[tasks.lint]
+description = "Lint with eslint"
+run = "npm run lint"
+
+[tasks.typecheck]
+description = "Type-check with tsc (no emit)"
+run = "npm run typecheck"
+
+[tasks.test]
+description = "Run the unit test suite with vitest"
+run = "npm run test"
+
+[tasks.test-watch]
+description = "Run vitest in watch mode"
+run = "npm run test:watch"
+
+[tasks.build]
+description = "Production build"
+run = "npm run build"
