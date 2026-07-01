@@ -9,6 +9,13 @@ import {
 } from "../lib/api";
 import { useAudioStore } from "../store/audioStore";
 import { TRACKS } from "../hooks/useBgMusic";
+import { getAudioContext } from "../hooks/useChiptune";
+
+// "AUTO" (null = per-screen track) plus every named track, as one cyclic list.
+const TRACK_OPTIONS: { id: string | null; name: string }[] = [
+  { id: null, name: "AUTO" },
+  ...TRACKS.map((t) => ({ id: t.id, name: t.name })),
+];
 
 const selectStyle: React.CSSProperties = {
   background: "var(--nes-darkgray)",
@@ -172,7 +179,8 @@ function KeyInput({
 }
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
-  const { manualTrackId, setManualTrack } = useAudioStore();
+  const { manualTrackId, setManualTrack, musicEnabled, toggleMusic } =
+    useAudioStore();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [settings, setSettings] = useState<AppSettings>({
@@ -359,18 +367,77 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
               specific track.
             </div>
           </div>
-          <select
-            style={selectStyle}
-            value={manualTrackId ?? ""}
-            onChange={(e) => setManualTrack(e.target.value || null)}
-          >
-            <option value="">AUTO</option>
-            {TRACKS.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              className="pixel-btn"
+              style={{ fontSize: "0.7rem", padding: "8px 10px" }}
+              onClick={() => {
+                const idx = TRACK_OPTIONS.findIndex(
+                  (t) => t.id === manualTrackId,
+                );
+                const prev =
+                  (idx - 1 + TRACK_OPTIONS.length) % TRACK_OPTIONS.length;
+                setManualTrack(TRACK_OPTIONS[prev].id);
+              }}
+              aria-label="Previous track"
+            >
+              <span className="pixel-arrow">◀</span>
+            </button>
+            <div
+              style={{
+                ...selectStyle,
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "default",
+              }}
+            >
+              {TRACK_OPTIONS.find((t) => t.id === manualTrackId)?.name ??
+                "AUTO"}
+            </div>
+            <button
+              type="button"
+              className="pixel-btn"
+              style={{ fontSize: "0.7rem", padding: "8px 10px" }}
+              onClick={() => {
+                const idx = TRACK_OPTIONS.findIndex(
+                  (t) => t.id === manualTrackId,
+                );
+                const next = (idx + 1) % TRACK_OPTIONS.length;
+                setManualTrack(TRACK_OPTIONS[next].id);
+              }}
+              aria-label="Next track"
+            >
+              <span className="pixel-arrow">▶</span>
+            </button>
+            <button
+              type="button"
+              className="pixel-btn"
+              style={
+                musicEnabled
+                  ? {
+                      fontSize: "0.9rem",
+                      padding: "8px 10px",
+                      borderColor: "var(--nes-cyan)",
+                      background: "rgba(66,197,245,0.1)",
+                    }
+                  : { fontSize: "0.9rem", padding: "8px 10px" }
+              }
+              onClick={() => {
+                void getAudioContext().resume();
+                toggleMusic();
+              }}
+              title={
+                musicEnabled
+                  ? "Music ON — click to mute"
+                  : "Music OFF — click to enable"
+              }
+            >
+              {musicEnabled ? "🎵" : "🔇"}
+            </button>
+          </div>
         </div>
 
         {(showModels || showKeys) && (
