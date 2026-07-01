@@ -365,6 +365,25 @@ export default function StageSelectScreen() {
         })}
       </div>
 
+      <div
+        style={{
+          width: "min(680px, 100%)",
+          display: "flex",
+          justifyContent: "flex-start",
+        }}
+      >
+        <button
+          className="pixel-btn"
+          style={{ fontSize: "0.7rem", padding: "10px 16px" }}
+          onClick={() => {
+            blip();
+            navigate("/");
+          }}
+        >
+          💾 SAVE &amp; EXIT
+        </button>
+      </div>
+
       <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)" }}>
         {cmdRunning
           ? "BYPASSING..."
