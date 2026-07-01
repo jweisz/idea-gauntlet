@@ -117,17 +117,17 @@ body::after {
 .pixel-btn--red {
   background: var(--nes-red);
   border-color: var(--nes-red);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: 4px 4px 0 var(--nes-red);
 }
 .pixel-btn--green {
   background: var(--nes-green);
   border-color: var(--nes-green);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: 4px 4px 0 var(--nes-green);
 }
 .pixel-btn--yellow {
   background: var(--nes-orange);
   border-color: var(--nes-yellow);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: 4px 4px 0 var(--nes-yellow);
 }
 
 /* ---- Pixel input ---- */

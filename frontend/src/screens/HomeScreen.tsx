@@ -267,13 +267,20 @@ export default function HomeScreen() {
                   {revealed && (
                     <>
                       <button
-                        className="pixel-btn pixel-btn--red"
+                        className="pixel-btn"
                         disabled={loadingId === s.id}
                         title="Delete"
                         style={{
                           flexShrink: 0,
-                          fontSize: "1rem",
-                          padding: "12px 16px",
+                          width: 52,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1.1rem",
+                          padding: "12px 0",
+                          background: "rgba(214,40,40,0.15)",
+                          borderColor: "var(--nes-red)",
+                          boxShadow: "4px 4px 0 var(--nes-red)",
                         }}
                         onClick={() => {
                           blip();
@@ -288,8 +295,12 @@ export default function HomeScreen() {
                         title="Resume"
                         style={{
                           flexShrink: 0,
+                          width: 52,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                           fontSize: "1rem",
-                          padding: "12px 16px",
+                          padding: "12px 0",
                         }}
                         onClick={() => openSession(s)}
                       >
