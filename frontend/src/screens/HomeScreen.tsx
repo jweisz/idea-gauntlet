@@ -267,7 +267,7 @@ export default function HomeScreen() {
                   {revealed && (
                     <>
                       <button
-                        className="pixel-btn"
+                        className="pixel-btn pixel-btn--red-outline"
                         disabled={loadingId === s.id}
                         title="Delete"
                         style={{
@@ -278,9 +278,6 @@ export default function HomeScreen() {
                           justifyContent: "center",
                           fontSize: "1.1rem",
                           padding: "12px 0",
-                          background: "rgba(214,40,40,0.15)",
-                          borderColor: "var(--nes-red)",
-                          boxShadow: "4px 4px 0 var(--nes-red)",
                         }}
                         onClick={() => {
                           blip();

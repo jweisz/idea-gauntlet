@@ -30,6 +30,12 @@
   --nes-green-shadow: #115826;
   --nes-yellow-shadow: #7a6221;
 
+  /* Lighter shades of the same colors, for hover fills — staying within the
+     button's own color family instead of the default button's blue accent. */
+  --nes-red-hover: #e05e5e;
+  --nes-green-hover: #4ec170;
+  --nes-yellow-hover: #e68933;
+
   --pixel-border: 4px solid var(--nes-white);
   --pixel-shadow: 4px 4px 0 var(--nes-black);
 
@@ -126,15 +132,40 @@ body::after {
   border-color: var(--nes-red);
   box-shadow: 4px 4px 0 var(--nes-red-shadow);
 }
+.pixel-btn--red:hover {
+  background: var(--nes-red-hover);
+  box-shadow: 2px 2px 0 var(--nes-red-shadow);
+}
 .pixel-btn--green {
   background: var(--nes-green);
   border-color: var(--nes-green);
   box-shadow: 4px 4px 0 var(--nes-green-shadow);
 }
+.pixel-btn--green:hover {
+  background: var(--nes-green-hover);
+  box-shadow: 2px 2px 0 var(--nes-green-shadow);
+}
 .pixel-btn--yellow {
   background: var(--nes-orange);
   border-color: var(--nes-yellow);
   box-shadow: 4px 4px 0 var(--nes-yellow-shadow);
+}
+.pixel-btn--yellow:hover {
+  background: var(--nes-yellow-hover);
+  box-shadow: 2px 2px 0 var(--nes-yellow-shadow);
+}
+
+/* Translucent-fill red button (e.g. delete icon) — same red family as
+   pixel-btn--red, but a see-through fill so a dark glyph (like 🗑) stays
+   legible instead of sitting on solid saturated red. */
+.pixel-btn--red-outline {
+  background: rgba(214, 40, 40, 0.15);
+  border-color: var(--nes-red);
+  box-shadow: 4px 4px 0 var(--nes-red-shadow);
+}
+.pixel-btn--red-outline:hover {
+  background: rgba(214, 40, 40, 0.3);
+  box-shadow: 2px 2px 0 var(--nes-red-shadow);
 }
 
 /* ---- Pixel input ---- */
