@@ -118,6 +118,7 @@ export default function BattleScreen() {
   const [giveUpOpen, setGiveUpOpen] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRanRef = useRef(false);
   const userScrolledUpRef = useRef(false);
   const pendingAgentDamageRef = useRef<number | null>(null);
@@ -247,6 +248,15 @@ export default function BattleScreen() {
       observer.disconnect();
     };
   }, []);
+
+  // Focus the argument field whenever it becomes typeable — on load once the
+  // opening line finishes, and again after each exchange — so the player can
+  // start typing straight away instead of having to click in first.
+  useEffect(() => {
+    if (!sending && !openingLoading && !outcome) {
+      inputRef.current?.focus();
+    }
+  }, [sending, openingLoading, outcome]);
 
   if (!boss || !session) return null;
 
@@ -777,6 +787,7 @@ export default function BattleScreen() {
         >
           <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
             <textarea
+              ref={inputRef}
               className="pixel-input"
               rows={3}
               value={input}

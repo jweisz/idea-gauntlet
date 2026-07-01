@@ -91,6 +91,8 @@ function BossCell({
               textAlign: "center",
               padding: "0 6px",
               lineHeight: 1.5,
+              width: "100%",
+              overflowWrap: "break-word",
             }}
           >
             {boss.agent.name}
@@ -102,7 +104,15 @@ function BossCell({
           <div className="sprite sprite--idle" style={{ fontSize: 36 }}>
             {boss.agent.emoji}
           </div>
-          <div style={{ fontSize: "0.8rem", lineHeight: 1.6 }}>
+          <div
+            style={{
+              fontSize: "0.65rem",
+              lineHeight: 1.6,
+              textAlign: "center",
+              width: "100%",
+              overflowWrap: "break-word",
+            }}
+          >
             {boss.agent.name}
           </div>
         </>
