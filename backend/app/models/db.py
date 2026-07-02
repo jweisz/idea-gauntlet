@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Priority: 1. ENV, 2. Local fallback
@@ -22,9 +22,33 @@ elif DATABASE_URL.startswith("postgres://"):
 
 engine_kwargs = {}
 if DATABASE_URL.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
+    # check_same_thread=False: the async server touches the DB from worker
+    # threads. timeout: how long a connection waits on a locked DB before
+    # raising (see the busy_timeout PRAGMA below, which is the effective knob).
+    engine_kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
+
+
+if DATABASE_URL.startswith("sqlite") and not DATABASE_URL.endswith(":memory:"):
+
+    @event.listens_for(engine, "connect")
+    def _sqlite_pragmas(dbapi_conn, _record):
+        """Make SQLite tolerate the app's concurrent writers.
+
+        The default rollback journal serializes writers with a short busy
+        timeout, so a background write (e.g. usage metering) racing a request's
+        transaction fails fast with "database is locked". WAL lets readers run
+        concurrently with a single writer, and a long busy_timeout makes the
+        remaining writer-vs-writer contention wait-and-retry instead of erroring.
+        """
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
