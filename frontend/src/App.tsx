@@ -30,7 +30,12 @@ import SummaryScreen from "./screens/SummaryScreen";
 import LeaderboardScreen from "./screens/LeaderboardScreen";
 import WaitlistScreen from "./screens/WaitlistScreen";
 
-// One track per boss slot (8 slots → 7 unique tracks, slot 7 wraps to arena)
+// One track per boss slot — 8 slots, 8 unique tracks. This maps to the
+// boss's *position in the session's roster*, not the boss's identity: which
+// track a given boss (e.g. Bedrock) gets depends on where it landed in that
+// game's randomized order, so it won't always be the same track across
+// different games. "overworld" and "credits" are reserved for the menu
+// screens and the summary screen respectively, so they're excluded here.
 const BATTLE_TRACKS = [
   "arena",
   "shadow",
@@ -39,7 +44,7 @@ const BATTLE_TRACKS = [
   "thunder",
   "mirage",
   "starlight",
-  "arena",
+  "carnival",
 ];
 
 function AudioManager() {
