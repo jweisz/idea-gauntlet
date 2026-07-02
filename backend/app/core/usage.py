@@ -14,6 +14,8 @@ import contextvars
 import logging
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session
+
 from ..models.db import SessionLocal
 from ..models.schema import UsageEvent
 
@@ -24,6 +26,10 @@ logger = logging.getLogger(__name__)
 class UsageContext:
     principal: str | None = None
     session_id: int | None = None
+    # The active request's DB session, when metering runs inside one. Reused so
+    # the usage insert joins the request's transaction instead of opening a
+    # second connection (see record_usage).
+    db: Session | None = None
 
 
 _usage_ctx: contextvars.ContextVar[UsageContext] = contextvars.ContextVar(
@@ -32,9 +38,11 @@ _usage_ctx: contextvars.ContextVar[UsageContext] = contextvars.ContextVar(
 
 
 def set_usage_context(
-    principal: str | None = None, session_id: int | None = None
+    principal: str | None = None,
+    session_id: int | None = None,
+    db: Session | None = None,
 ) -> None:
-    _usage_ctx.set(UsageContext(principal=principal, session_id=session_id))
+    _usage_ctx.set(UsageContext(principal=principal, session_id=session_id, db=db))
 
 
 # Approximate USD price per 1M tokens, matched by substring of the model string
@@ -88,22 +96,33 @@ def record_usage(message, provider: str, model: str) -> None:
         in_price, out_price = _price_for(model)
         cost = (in_tok / 1_000_000) * in_price + (out_tok / 1_000_000) * out_price
         ctx = _usage_ctx.get()
-        db = SessionLocal()
-        try:
-            db.add(
-                UsageEvent(
-                    principal=ctx.principal,
-                    session_id=ctx.session_id,
-                    provider=provider,
-                    model=model,
-                    input_tokens=in_tok,
-                    output_tokens=out_tok,
-                    est_cost_usd=round(cost, 6),
-                )
-            )
-            db.commit()
-        finally:
-            db.close()
+        event = UsageEvent(
+            principal=ctx.principal,
+            session_id=ctx.session_id,
+            provider=provider,
+            model=model,
+            input_tokens=in_tok,
+            output_tokens=out_tok,
+            est_cost_usd=round(cost, 6),
+        )
+        if ctx.db is not None:
+            # Inside a request: piggyback on its session so this insert joins the
+            # request's transaction rather than opening a second SQLite writer —
+            # which would deadlock against the write lock the request already
+            # holds (it's paused here, mid-handler, so it can't commit to release
+            # it). Persisted when the request commits; dropped on rollback, which
+            # is fine for best-effort metering. Add-only (no flush/commit) so we
+            # never prematurely persist the handler's own pending writes.
+            ctx.db.add(event)
+        else:
+            # No request context (e.g. background/seed work): own short-lived
+            # session, committed immediately.
+            db = SessionLocal()
+            try:
+                db.add(event)
+                db.commit()
+            finally:
+                db.close()
     except Exception:
         logger.warning("usage metering failed", exc_info=True)
 

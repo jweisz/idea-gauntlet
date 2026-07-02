@@ -83,20 +83,24 @@ async def _get_agent_reply_or_502(*, agent, idea, battle_messages):
 
 
 def _attach_usage_context(
-    request: Request, principal: str = Depends(get_current_principal)
+    request: Request,
+    principal: str = Depends(get_current_principal),
+    db: Session = Depends(get_db),
 ) -> None:
     """Stamp LLM usage with the acting user + session for the duration of the request.
 
     Runs for every gauntlet route; session_id is read from the path when present
     (battle/summary routes) so metered calls in the service layer are attributed
-    without threading args through every function.
+    without threading args through every function. The request's ``db`` (the same
+    cached Session the handler receives) is stashed too, so ``record_usage`` can
+    write on it instead of opening a competing connection.
     """
     raw = request.path_params.get("session_id")
     try:
         session_id = int(raw) if raw is not None else None
     except (TypeError, ValueError):
         session_id = None
-    set_usage_context(principal=principal, session_id=session_id)
+    set_usage_context(principal=principal, session_id=session_id, db=db)
 
 
 router = APIRouter(
