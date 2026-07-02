@@ -870,6 +870,86 @@ const CRED_BASS: Note[] = [
   [0, CR.Q],
 ];
 
+// ── Track 10: CARNIVAL ──────────────────────────────────────────────────────
+// Songo-style D major groove, 116 BPM — syncopated montuno riff over an
+// anticipated tumbao bass line. (An earlier D dorian version read as moody
+// rather than festive — major brightens it while keeping the same rhythm.)
+const SO = b(116);
+const SONGO_MELODY: Note[] = [
+  [294, SO.S],
+  [0, SO.S],
+  [370, SO.S],
+  [294, SO.S],
+  [0, SO.E],
+  [370, SO.E],
+  [440, SO.S],
+  [0, SO.S],
+  [392, SO.S],
+  [370, SO.S],
+  [294, SO.DQ],
+  [0, SO.E],
+  [370, SO.S],
+  [0, SO.S],
+  [392, SO.S],
+  [440, SO.S],
+  [0, SO.E],
+  [494, SO.E],
+  [440, SO.S],
+  [0, SO.S],
+  [392, SO.S],
+  [370, SO.S],
+  [294, SO.DQ],
+  [0, SO.E],
+  [554, SO.S],
+  [0, SO.S],
+  [494, SO.S],
+  [440, SO.S],
+  [0, SO.E],
+  [392, SO.E],
+  [440, SO.S],
+  [0, SO.S],
+  [370, SO.S],
+  [294, SO.S],
+  [370, SO.DQ],
+  [0, SO.E],
+  [294, SO.S],
+  [0, SO.S],
+  [277, SO.S],
+  [294, SO.S],
+  [0, SO.E],
+  [370, SO.E],
+  [294, SO.H],
+];
+const SONGO_BASS: Note[] = [
+  [147, SO.E],
+  [0, SO.S],
+  [147, SO.S],
+  [0, SO.E],
+  [185, SO.E],
+  [196, SO.Q],
+  [0, SO.E],
+  [147, SO.E],
+  [0, SO.S],
+  [147, SO.S],
+  [0, SO.E],
+  [247, SO.E],
+  [220, SO.Q],
+  [0, SO.E],
+  [185, SO.E],
+  [0, SO.S],
+  [185, SO.S],
+  [0, SO.E],
+  [196, SO.E],
+  [220, SO.Q],
+  [0, SO.E],
+  [147, SO.E],
+  [0, SO.S],
+  [147, SO.S],
+  [0, SO.E],
+  [185, SO.E],
+  [147, SO.H],
+];
+
 // ── Track registry ──────────────────────────────────────────────────────────
 export const TRACKS: Track[] = [
   {
@@ -961,6 +1041,16 @@ export const TRACKS: Track[] = [
     bassWave: "triangle",
     melodyVol: 0.13,
     bassVol: 0.1,
+  },
+  {
+    id: "carnival",
+    name: "CARNIVAL",
+    melody: SONGO_MELODY,
+    bass: SONGO_BASS,
+    melodyWave: "square",
+    bassWave: "triangle",
+    melodyVol: 0.1,
+    bassVol: 0.11,
   },
 ];
 
