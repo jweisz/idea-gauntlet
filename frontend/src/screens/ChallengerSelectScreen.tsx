@@ -7,6 +7,7 @@ import {
   type Difficulty,
 } from "../lib/api";
 import { useGameStore } from "../store/gameStore";
+import { useConfigStore } from "../store/configStore";
 import { useChiptune } from "../hooks/useChiptune";
 import CreditsBadge from "../components/CreditsBadge";
 
@@ -40,7 +41,13 @@ export default function ChallengerSelectScreen() {
   const [rerollsUsed, setRerollsUsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [outOfCredits, setOutOfCredits] = useState(false);
+  const [outOfCreditsMsg, setOutOfCreditsMsg] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  // When billing is disabled the deployment grants a fixed monthly allotment and
+  // there's nothing to buy — so we show the server's "out of plays" message
+  // instead of the purchase modal.
+  const billingEnabled =
+    useConfigStore((s) => s.config?.billing_enabled) ?? false;
 
   const rerollsLeft = MAX_REROLLS - rerollsUsed;
 
@@ -75,6 +82,7 @@ export default function ChallengerSelectScreen() {
       navigate("/stage-select");
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
+        setOutOfCreditsMsg(e.detail);
         setOutOfCredits(true);
       } else if (e instanceof ApiError && e.status === 503) {
         navigate("/waitlist");
@@ -352,9 +360,9 @@ export default function ChallengerSelectScreen() {
           }}
         >
           <p style={{ color: "var(--nes-yellow)", fontSize: "0.8rem" }}>
-            You're out of credits.
+            {outOfCreditsMsg ?? "You're out of credits."}
           </p>
-          <CreditsBadge openOnMount />
+          {billingEnabled && <CreditsBadge openOnMount />}
         </div>
       )}
 
