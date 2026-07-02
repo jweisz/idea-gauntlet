@@ -105,8 +105,8 @@ def get_app_config() -> dict:
     """Feature flags surfaced to the frontend via ``GET /api/config``.
 
     Default (self-host): keys + model selection visible, no billing, players are
-    always accepted. Set LOCK_LLM_SETTINGS=true (e.g. on a Render deploy
-    configured entirely via env vars) to hide the key/model fields instead.
+    always accepted. Set LOCK_LLM_SETTINGS=true (e.g. on a deploy configured
+    entirely via env vars) to hide the key/model fields instead.
     The hosted overlay overrides this wholesale to also enable billing +
     leaderboard and reflect the spend gate.
     """

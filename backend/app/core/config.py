@@ -37,8 +37,8 @@ def is_hosted() -> bool:
 def lock_llm_settings() -> bool:
     """Whether the LLM provider/model/API-key fields should be hidden from Settings.
 
-    Set LOCK_LLM_SETTINGS=true for a self-host deploy (e.g. Render) where the
-    operator configures the LLM entirely via env vars — API key(s) plus
+    Set LOCK_LLM_SETTINGS=true for a self-host deploy where the operator
+    configures the LLM entirely via env vars — API key(s) plus
     LLM_PROVIDER/LLM_MODEL — and doesn't want it visible or editable by
     whoever opens the app. Defaults to false so a local/self-host run with
     no env vars set still gets the in-app onboarding UI.

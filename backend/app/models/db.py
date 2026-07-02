@@ -11,9 +11,9 @@ DB_FILE = DATA_DIR / "idea-gauntlet.db"
 DEFAULT_URL = f"sqlite:///{DB_FILE}"
 DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_URL)
 
-# Managed Postgres providers (Render, etc.) hand out "postgresql://" / "postgres://"
-# URLs, which SQLAlchemy maps to the psycopg2 driver. We standardize on psycopg
-# v3, so normalize to the explicit "+psycopg" dialect. No effect on the sqlite
+# Many managed Postgres providers hand out "postgresql://" / "postgres://" URLs,
+# which SQLAlchemy maps to the psycopg2 driver. We standardize on psycopg v3, so
+# normalize to the explicit "+psycopg" dialect. No effect on the sqlite
 # self-host default.
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)

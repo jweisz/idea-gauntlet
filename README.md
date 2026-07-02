@@ -89,11 +89,21 @@ Three tiers, by how often a value changes and how secret it is:
 Want to rebrand the game? Change `[branding].name` in `config.toml` — it flows
 through the UI automatically.
 
-## Deploy
+## Running your own instance
 
-`render.yaml` provisions managed Postgres + the API + a static frontend build.
-SQLite is the zero-config default for local runs; set `DATABASE_URL` to point at
-Postgres for anything shared.
+Idea Gauntlet is two pieces: the FastAPI backend and the static frontend build
+(`npm run build` → `frontend/dist`, served by any static host or the same box).
+
+- **Database.** SQLite is the zero-config default for local runs. For anything
+  shared or long-lived, set `DATABASE_URL` to a Postgres instance — `postgres://`
+  / `postgresql://` URLs are normalized automatically.
+- **LLM.** Provide a provider key via env (`ANTHROPIC_API_KEY`, etc.) plus
+  `LLM_PROVIDER` / `LLM_MODEL`. Set `LOCK_LLM_SETTINGS=true` to configure the
+  model entirely from the environment and hide the in-app key/model fields.
+- **Access.** The self-host build runs open (no accounts) — keep it on your own
+  machine or network, or put it behind your own auth/proxy before exposing it.
+
+See `backend/.env.example` for the full list of settings.
 
 ## License
 
