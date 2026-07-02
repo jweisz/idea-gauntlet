@@ -9,16 +9,56 @@ surfaced as "database is locked".
 
 from types import SimpleNamespace
 
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.api.gauntlet import _attach_usage_context
 from app.core import usage
-from app.models.db import Base
+from app.core.deps import get_current_principal
+from app.models.db import Base, get_db
 from app.models.schema import UsageEvent
 
 
 def _fake_message(inp: int = 10, out: int = 5):
     return SimpleNamespace(usage_metadata={"input_tokens": inp, "output_tokens": out})
+
+
+def test_attach_usage_context_propagates_to_endpoint(db_session):
+    """The router dependency's stamp must reach the endpoint (and the service
+    layer it calls). Regression: as a sync dependency it ran in a threadpool
+    whose ContextVar writes were discarded, so db/principal never propagated and
+    record_usage fell back to a second connection that deadlocked on SQLite.
+    """
+    probe = FastAPI()
+
+    @probe.get("/t/{session_id}", dependencies=[Depends(_attach_usage_context)])
+    async def _route():
+        ctx = usage._usage_ctx.get()
+        return {
+            "db_is_request_session": ctx.db is db_session,
+            "principal": ctx.principal,
+            "session_id": ctx.session_id,
+        }
+
+    def _override_get_db():
+        yield db_session
+
+    probe.dependency_overrides[get_current_principal] = lambda: "u@x.com"
+    probe.dependency_overrides[get_db] = _override_get_db
+
+    try:
+        with TestClient(probe) as c:
+            body = c.get("/t/5").json()
+    finally:
+        usage.set_usage_context()  # reset the ContextVar for other tests
+
+    assert body == {
+        "db_is_request_session": True,
+        "principal": "u@x.com",
+        "session_id": 5,
+    }
 
 
 def test_record_usage_reuses_request_session_without_committing(db_session):

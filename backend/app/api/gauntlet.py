@@ -82,7 +82,7 @@ async def _get_agent_reply_or_502(*, agent, idea, battle_messages):
         )
 
 
-def _attach_usage_context(
+async def _attach_usage_context(
     request: Request,
     principal: str = Depends(get_current_principal),
     db: Session = Depends(get_db),
@@ -94,6 +94,11 @@ def _attach_usage_context(
     without threading args through every function. The request's ``db`` (the same
     cached Session the handler receives) is stashed too, so ``record_usage`` can
     write on it instead of opening a competing connection.
+
+    Must be ``async``: a sync dependency runs in a threadpool worker whose
+    ContextVar writes are isolated to that thread, so the ``set_usage_context``
+    below would never reach the endpoint. Awaited inline, it shares the request's
+    context and the stamp propagates to the service-layer metered calls.
     """
     raw = request.path_params.get("session_id")
     try:
