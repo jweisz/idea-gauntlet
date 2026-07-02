@@ -333,7 +333,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           }}
         >
           <h2 className="text-cyan" style={{ fontSize: "0.9rem" }}>
-            ⚙ SETTINGS
+            <span style={{ fontSize: "1.3em" }}>⚙️</span> SETTINGS
           </h2>
           <button
             onClick={closeDiscarding}
@@ -377,7 +377,12 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className="pixel-btn"
-              style={{ fontSize: "0.7rem", padding: "8px 10px" }}
+              style={{
+                fontSize: "0.7rem",
+                padding: "8px 10px",
+                border: "2px solid var(--nes-gray)",
+                boxShadow: "none",
+              }}
               onClick={() => {
                 const idx = TRACK_OPTIONS.findIndex(
                   (t) => t.id === manualTrackId,
@@ -406,7 +411,12 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className="pixel-btn"
-              style={{ fontSize: "0.7rem", padding: "8px 10px" }}
+              style={{
+                fontSize: "0.7rem",
+                padding: "8px 10px",
+                border: "2px solid var(--nes-gray)",
+                boxShadow: "none",
+              }}
               onClick={() => {
                 const idx = TRACK_OPTIONS.findIndex(
                   (t) => t.id === manualTrackId,
@@ -426,10 +436,16 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
                   ? {
                       fontSize: "0.9rem",
                       padding: "8px 10px",
-                      borderColor: "var(--nes-cyan)",
+                      border: "2px solid var(--nes-cyan)",
+                      boxShadow: "none",
                       background: "rgba(66,197,245,0.1)",
                     }
-                  : { fontSize: "0.9rem", padding: "8px 10px" }
+                  : {
+                      fontSize: "0.9rem",
+                      padding: "8px 10px",
+                      border: "2px solid var(--nes-gray)",
+                      boxShadow: "none",
+                    }
               }
               onClick={() => {
                 void getAudioContext().resume();
