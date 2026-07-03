@@ -134,7 +134,6 @@ export default function LeaderboardScreen() {
 
             {e.defeated_bosses.length > 0 && (
               <div style={{ fontSize: "0.55rem", color: "var(--nes-green)" }}>
-                ✓{" "}
                 {e.defeated_bosses
                   .map((name) =>
                     emojiByName[name] ? `${emojiByName[name]} ${name}` : name,
