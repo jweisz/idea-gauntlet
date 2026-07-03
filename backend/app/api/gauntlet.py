@@ -586,9 +586,12 @@ async def battle_message(
         agent_reply=agent_reply,
     )
 
-    # Misuse / jailbreak attempt: reject in-character, deal no damage, and make
-    # no progress so the app can't be used as a free general-purpose LLM. The
-    # overlay hook records the event and applies enforcement (no-op in self-host).
+    # Flagrant circumvention attempt (prompt injection): reject in-character, deal
+    # no damage, and make no progress so the app can't be used as a free
+    # general-purpose LLM. An off-topic miss does NOT reach this branch — see
+    # score_exchange, which already zeroes user_damage for that case while
+    # letting the critic counter-attack normally. The overlay hook records the
+    # event and applies enforcement (no-op in self-host).
     if guard.flagged:
         logger.warning(
             "Judge flagged turn as misuse (boss_id=%s, label=%s, reason=%r); "
@@ -604,10 +607,9 @@ async def battle_message(
             "The critics refuse to take the bait — they only respond to a genuine "
             "defense of your idea. Stay on topic and make your case."
         )
-        no_damage_reason = guard.reason or {
-            "off_topic": "Didn't engage with the debate",
-            "prompt_injection": "Tried to redirect the critics instead of debating",
-        }.get(guard.label or "", "Not a genuine debate move")
+        no_damage_reason = (
+            guard.reason or "Tried to redirect the critics instead of debating"
+        )
         user_msg.damage = 0
         user_msg.damage_reason = no_damage_reason
         db.add(
