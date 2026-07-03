@@ -514,14 +514,11 @@ async def generate_objections(
         return []
 
 
-_DIFFICULTY_WEIGHT = {"easy": 0, "normal": 1, "difficult": 2}
-
-
-def compute_session_stats(session: GauntletSession, bosses: list[BattleBoss]) -> dict:
+def compute_session_stats(bosses: list[BattleBoss]) -> dict:
     """Derive leaderboard stats from stored battle data (no LLM call).
 
-    Returns defeated boss names, counts, avg turns per boss, avg user damage per
-    attack, and a composite ranking score.
+    Returns defeated boss names, counts, avg turns per boss, and avg user
+    damage per attack.
     """
     defeated = [b for b in bosses if b.status == "defeated"]
     defeated_names = [
@@ -544,20 +541,12 @@ def compute_session_stats(session: GauntletSession, bosses: list[BattleBoss]) ->
         round(sum(user_damages) / len(user_damages), 2) if user_damages else 0.0
     )
 
-    diff_weight = _DIFFICULTY_WEIGHT.get(session.difficulty or "difficult", 2)
-    # Primary: bosses defeated. Then difficulty. Then efficiency (more damage per
-    # attack, fewer turns per boss). Kept integer for stable ordering.
-    score = (
-        len(defeated) * 1000 + diff_weight * 100 + round(avg_damage) - round(avg_turns)
-    )
-
     return {
         "defeated_names": defeated_names,
         "bosses_defeated": len(defeated),
         "total_bosses": len(bosses),
         "avg_turns_per_boss": avg_turns,
         "avg_damage_per_attack": avg_damage,
-        "score": score,
     }
 
 

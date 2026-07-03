@@ -127,6 +127,32 @@ body::after {
   box-shadow: none;
 }
 
+.pixel-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pixel-btn:disabled:hover,
+.pixel-btn:disabled:active {
+  background: var(--nes-darkgray);
+  transform: none;
+  box-shadow: 4px 4px 0 var(--nes-white);
+}
+.pixel-btn--red:disabled:hover,
+.pixel-btn--red:disabled:active {
+  background: var(--nes-red);
+  box-shadow: 4px 4px 0 var(--nes-red-shadow);
+}
+.pixel-btn--green:disabled:hover,
+.pixel-btn--green:disabled:active {
+  background: var(--nes-green);
+  box-shadow: 4px 4px 0 var(--nes-green-shadow);
+}
+.pixel-btn--yellow:disabled:hover,
+.pixel-btn--yellow:disabled:active {
+  background: var(--nes-orange);
+  box-shadow: 4px 4px 0 var(--nes-yellow-shadow);
+}
+
 .pixel-btn--red {
   background: var(--nes-red);
   border-color: var(--nes-red);

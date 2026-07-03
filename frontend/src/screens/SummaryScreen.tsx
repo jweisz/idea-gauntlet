@@ -78,6 +78,8 @@ export default function SummaryScreen() {
   );
   const [objectionsLoading, setObjectionsLoading] = useState(!existing);
   const [error, setError] = useState<string | null>(null);
+  // Gates the download/publish actions until every synthesis call has settled
+  const [synthesisDone, setSynthesisDone] = useState(!!session?.summary);
 
   // Leaderboard publish state
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
@@ -111,6 +113,7 @@ export default function SummaryScreen() {
     );
     if (defeatedBosses.length === 0) {
       // Nothing to summarize — surfaced as a derived message at render time.
+      // (synthesisDone stays false, but no download/publish is possible anyway.)
       return;
     }
 
@@ -158,6 +161,7 @@ export default function SummaryScreen() {
         } catch {
           // Non-critical — the display already shows the data
         }
+        setSynthesisDone(true);
         unlock();
       },
     );
@@ -177,7 +181,7 @@ export default function SummaryScreen() {
   const displayError =
     error ?? (defeatedBosses.length === 0 ? "No defeated bosses." : null);
 
-  const handleNewGame = () => {
+  const handleReturnToTitle = () => {
     blip();
     clearSession();
     navigate("/");
@@ -430,54 +434,65 @@ export default function SummaryScreen() {
         )}
       </div>
 
-      {/* Actions */}
+      {/* Actions — download/publish appear once synthesis has finished */}
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
           gap: 16,
-          flexWrap: "wrap",
-          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        {summaryData && (
-          <button
-            className="pixel-btn"
-            onClick={handleDownload}
-            style={{ fontSize: "0.75rem", padding: "12px 24px" }}
-          >
-            ↓ DOWNLOAD .MD
-          </button>
-        )}
-        {canPublish && publishStatus !== "published" && (
-          <button
-            className="pixel-btn"
-            onClick={() => {
-              blip();
-              setShowPublish(true);
+        {synthesisDone && (
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              flexWrap: "wrap",
+              justifyContent: "center",
             }}
-            style={{ fontSize: "0.75rem", padding: "12px 24px" }}
           >
-            🏆 PUBLISH TO LEADERBOARD
-          </button>
-        )}
-        {publishStatus === "published" && (
-          <button
-            className="pixel-btn pixel-btn--green"
-            onClick={() => {
-              blip();
-              navigate("/leaderboard");
-            }}
-            style={{ fontSize: "0.75rem", padding: "12px 24px" }}
-          >
-            ✓ PUBLISHED — VIEW LEADERBOARD
-          </button>
+            {summaryData && (
+              <button
+                className="pixel-btn"
+                onClick={handleDownload}
+                style={{ fontSize: "0.75rem", padding: "12px 24px" }}
+              >
+                ↓ DOWNLOAD .MD
+              </button>
+            )}
+            {canPublish && publishStatus !== "published" && (
+              <button
+                className="pixel-btn"
+                onClick={() => {
+                  blip();
+                  setShowPublish(true);
+                }}
+                style={{ fontSize: "0.75rem", padding: "12px 24px" }}
+              >
+                🏆 PUBLISH TO LEADERBOARD
+              </button>
+            )}
+            {publishStatus === "published" && (
+              <button
+                className="pixel-btn pixel-btn--green"
+                onClick={() => {
+                  blip();
+                  navigate("/leaderboard");
+                }}
+                style={{ fontSize: "0.75rem", padding: "12px 24px" }}
+              >
+                ✓ PUBLISHED — VIEW LEADERBOARD
+              </button>
+            )}
+          </div>
         )}
         <button
           className="pixel-btn pixel-btn--green"
-          onClick={handleNewGame}
-          style={{ fontSize: "0.9rem", padding: "14px 32px" }}
+          onClick={handleReturnToTitle}
+          style={{ fontSize: "0.8rem", padding: "12px 28px" }}
         >
-          <span className="pixel-arrow">▶</span> NEW GAME
+          <span className="pixel-arrow">◀</span> RETURN TO TITLE SCREEN
         </button>
       </div>
 
@@ -494,7 +509,8 @@ export default function SummaryScreen() {
             padding: 16,
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPublish(false);
+            if (e.target === e.currentTarget && publishStatus !== "publishing")
+              setShowPublish(false);
           }}
         >
           <div

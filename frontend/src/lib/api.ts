@@ -212,7 +212,6 @@ export interface LeaderboardEntryOut {
   total_bosses: number;
   avg_turns_per_boss: number;
   avg_damage_per_attack: number;
-  score: number;
   created_at: string;
 }
 

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { leaderboardApi, ApiError, type LeaderboardEntryOut } from "../lib/api";
+import {
+  leaderboardApi,
+  gauntlet,
+  ApiError,
+  type LeaderboardEntryOut,
+} from "../lib/api";
 import { useChiptune } from "../hooks/useChiptune";
 
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -14,6 +19,8 @@ export default function LeaderboardScreen() {
   const { blip } = useChiptune();
   const [entries, setEntries] = useState<LeaderboardEntryOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Boss name → emoji, for decorating defeated-boss lists (entries store names only)
+  const [emojiByName, setEmojiByName] = useState<Record<string, string>>({});
 
   useEffect(() => {
     leaderboardApi
@@ -24,6 +31,14 @@ export default function LeaderboardScreen() {
           e instanceof ApiError ? e.detail : "Failed to load leaderboard",
         ),
       );
+    gauntlet
+      .allAgents()
+      .then((agents) =>
+        setEmojiByName(Object.fromEntries(agents.map((a) => [a.name, a.emoji]))),
+      )
+      .catch(() => {
+        // Emojis are decoration — names still render without them
+      });
   }, []);
 
   return (
@@ -59,7 +74,7 @@ export default function LeaderboardScreen() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {entries?.map((e, i) => (
+        {entries?.map((e) => (
           <div
             key={e.id}
             style={{
@@ -79,10 +94,10 @@ export default function LeaderboardScreen() {
               }}
             >
               <span style={{ fontSize: "0.85rem", color: "var(--nes-cyan)" }}>
-                #{i + 1} {e.user_display_name}
+                {e.user_display_name}
               </span>
-              <span style={{ fontSize: "0.7rem", color: "var(--nes-yellow)" }}>
-                {e.score} pts
+              <span style={{ fontSize: "0.6rem", color: "var(--nes-gray)" }}>
+                {new Date(e.created_at).toLocaleDateString()}
               </span>
             </div>
 
@@ -113,14 +128,18 @@ export default function LeaderboardScreen() {
               >
                 {e.difficulty.toUpperCase()}
               </span>{" "}
-              · {e.bosses_defeated}/{e.total_bosses} DEFEATED ·{" "}
-              {e.avg_turns_per_boss} TURNS/BOSS · {e.avg_damage_per_attack}{" "}
-              DMG/HIT
+              · AVG {e.avg_turns_per_boss} TURNS/BOSS · AVG{" "}
+              {e.avg_damage_per_attack} DMG/HIT
             </div>
 
             {e.defeated_bosses.length > 0 && (
               <div style={{ fontSize: "0.55rem", color: "var(--nes-green)" }}>
-                ✓ {e.defeated_bosses.join(" · ")}
+                ✓{" "}
+                {e.defeated_bosses
+                  .map((name) =>
+                    emojiByName[name] ? `${emojiByName[name]} ${name}` : name,
+                  )
+                  .join(" · ")}
               </div>
             )}
           </div>

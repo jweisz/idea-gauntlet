@@ -1,7 +1,7 @@
 """
 Public leaderboard.
 
-Lists opt-in published game snapshots, ranked by score. Entries are created via
+Lists opt-in published game snapshots, newest first. Entries are created via
 POST /api/gauntlet/sessions/{id}/publish (see gauntlet.py). This is a gameplay
 feature available in self-host too; the hosted deployment simply has more
 players.
@@ -28,7 +28,7 @@ def list_leaderboard(
     offset = max(0, offset)
     entries = (
         db.query(LeaderboardEntry)
-        .order_by(LeaderboardEntry.score.desc(), LeaderboardEntry.created_at.desc())
+        .order_by(LeaderboardEntry.created_at.desc())
         .offset(offset)
         .limit(limit)
         .all()

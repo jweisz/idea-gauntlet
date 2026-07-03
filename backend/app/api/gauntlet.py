@@ -190,7 +190,6 @@ class LeaderboardEntryOut(BaseModel):
     total_bosses: int
     avg_turns_per_boss: float
     avg_damage_per_attack: float
-    score: int
     created_at: datetime
 
 
@@ -211,7 +210,6 @@ def _entry_to_out(e: LeaderboardEntry) -> "LeaderboardEntryOut":
         total_bosses=e.total_bosses,
         avg_turns_per_boss=e.avg_turns_per_boss,
         avg_damage_per_attack=e.avg_damage_per_attack,
-        score=e.score,
         created_at=e.created_at,
     )
 
@@ -899,7 +897,7 @@ async def publish_to_leaderboard(
             status_code=400, detail="Finish the game before publishing it"
         )
 
-    stats = compute_session_stats(session, session.bosses)
+    stats = compute_session_stats(session.bosses)
     if stats["bosses_defeated"] == 0:
         raise HTTPException(
             status_code=400, detail="Defeat at least one critic before publishing"
@@ -928,7 +926,6 @@ async def publish_to_leaderboard(
     entry.total_bosses = stats["total_bosses"]
     entry.avg_turns_per_boss = stats["avg_turns_per_boss"]
     entry.avg_damage_per_attack = stats["avg_damage_per_attack"]
-    entry.score = stats["score"]
 
     db.commit()
     db.refresh(entry)

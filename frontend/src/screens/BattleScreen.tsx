@@ -131,6 +131,43 @@ export default function BattleScreen() {
     defeatReason?: string;
   } | null>(null);
 
+  // Grow the argument textarea with its content. Capped so the HP bar, the
+  // idea line, and a few transcript lines stay visible regardless of screen
+  // height: everything above the transcript is measured via its top edge, and
+  // TRANSCRIPT_MIN_PX is reserved for the transcript itself.
+  const autoResizeInput = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    const TRANSCRIPT_MIN_PX = 120; // ~2-3 chat lines
+    const LAYOUT_GAP_PX = 10;
+    const BOTTOM_PAD_PX = 12;
+
+    el.style.height = "auto";
+    const contentH = el.scrollHeight + 8; // + top/bottom borders (border-box)
+    const transcriptTop =
+      transcriptRef.current?.getBoundingClientRect().top ?? 0;
+    const maxH = Math.max(
+      el.clientHeight + 8,
+      window.innerHeight -
+        transcriptTop -
+        TRANSCRIPT_MIN_PX -
+        LAYOUT_GAP_PX -
+        BOTTOM_PAD_PX,
+    );
+    el.style.height = `${Math.min(contentH, maxH)}px`;
+    el.style.overflowY = contentH > maxH ? "auto" : "hidden";
+  }, []);
+
+  useEffect(() => {
+    autoResizeInput();
+  }, [input, autoResizeInput]);
+
+  useEffect(() => {
+    window.addEventListener("resize", autoResizeInput);
+    return () => window.removeEventListener("resize", autoResizeInput);
+  }, [autoResizeInput]);
+
   // Trigger full-screen damage effect. Shake is applied via direct DOM class
   // manipulation (with reflow trick) so animations restart correctly on
   // consecutive hits without remounting the component tree.

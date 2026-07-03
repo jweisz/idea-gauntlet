@@ -162,7 +162,6 @@ class LeaderboardEntry(Base):
     total_bosses: Mapped[int] = mapped_column(Integer, default=0)
     avg_turns_per_boss: Mapped[float] = mapped_column(Float, default=0.0)
     avg_damage_per_attack: Mapped[float] = mapped_column(Float, default=0.0)
-    score: Mapped[int] = mapped_column(Integer, default=0, index=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )
