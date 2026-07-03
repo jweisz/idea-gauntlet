@@ -125,27 +125,9 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
-      {(billingEnabled || googleAuth) && (
-        <div
-          style={{
-            alignSelf: "stretch",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            {googleAuth && (
-              <button
-                className="pixel-btn"
-                style={{ fontSize: "0.7rem", padding: "8px 14px" }}
-                onClick={handleSignOut}
-              >
-                SIGN OUT
-              </button>
-            )}
-          </div>
-          {billingEnabled && <CreditsBadge />}
+      {billingEnabled && (
+        <div style={{ alignSelf: "flex-end" }}>
+          <CreditsBadge />
         </div>
       )}
 
@@ -225,6 +207,16 @@ export default function HomeScreen() {
           }}
         >
           🏆 LEADERBOARD
+        </button>
+      )}
+
+      {googleAuth && (
+        <button
+          className="pixel-btn"
+          style={{ fontSize: "0.7rem", padding: "10px 28px" }}
+          onClick={handleSignOut}
+        >
+          SIGN OUT
         </button>
       )}
 
