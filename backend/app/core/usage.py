@@ -14,6 +14,7 @@ import contextvars
 import logging
 from dataclasses import dataclass
 
+from litellm.exceptions import BadRequestError
 from sqlalchemy.orm import Session
 
 from ..models.db import SessionLocal
@@ -129,6 +130,19 @@ def record_usage(message, provider: str, model: str) -> None:
 
 async def metered_ainvoke(llm, messages, *, provider: str, model: str):
     """``await llm.ainvoke(messages)`` plus usage recording. Returns the response."""
-    response = await llm.ainvoke(messages)
+    try:
+        response = await llm.ainvoke(messages)
+    except BadRequestError as e:
+        # Some newer models (seen on Anthropic's latest generation) reject any
+        # client-supplied `temperature` outright instead of just ignoring it,
+        # which would otherwise fail every call for that model's lifetime.
+        # Retry once with it unset before giving up.
+        if "temperature" in str(e) and "deprecated" in str(e).lower():
+            logger.warning(
+                "Model %s/%s rejected `temperature`; retrying without it", provider, model
+            )
+            response = await llm.ainvoke(messages, temperature=None)
+        else:
+            raise
     record_usage(response, provider, model)
     return response
