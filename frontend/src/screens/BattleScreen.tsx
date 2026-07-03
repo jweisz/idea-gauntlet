@@ -80,6 +80,10 @@ type Message = {
   content: string;
   damage?: number | null;
   damage_reason?: string | null;
+  // True from the moment the user's turn is sent until the judge's verdict
+  // (hit/miss) comes back, so the damage chip can appear instantly instead of
+  // waiting on the full round trip.
+  pending?: boolean;
 };
 
 type ScreenEffect = {
@@ -109,6 +113,7 @@ export default function BattleScreen() {
   const [agentHp, setAgentHp] = useState(boss?.agent_hp ?? MAX_HP);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [calcDots, setCalcDots] = useState(1);
   const [openingLoading, setOpeningLoading] = useState(false);
   const [latestAgentText, setLatestAgentText] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<"user" | "agent" | null>(null);
@@ -295,6 +300,13 @@ export default function BattleScreen() {
     }
   }, [sending, openingLoading, outcome]);
 
+  // Animated "..." on the pending damage chip while the judge is scoring.
+  useEffect(() => {
+    if (!sending) return;
+    const t = setInterval(() => setCalcDots((d) => (d % 3) + 1), 400);
+    return () => clearInterval(t);
+  }, [sending]);
+
   if (!boss || !session) return null;
 
   const handleSend = async () => {
@@ -333,7 +345,7 @@ export default function BattleScreen() {
 
     attack();
 
-    setMessages((prev) => [...prev, { role: "user", content }]);
+    setMessages((prev) => [...prev, { role: "user", content, pending: true }]);
 
     try {
       const result = await gauntlet.sendMessage(session.id, boss.id, content);
@@ -346,6 +358,7 @@ export default function BattleScreen() {
                 ...m,
                 damage: result.user_damage,
                 damage_reason: result.user_damage_reason,
+                pending: false,
               }
             : m,
         ),
@@ -388,8 +401,14 @@ export default function BattleScreen() {
 
       setLatestAgentText(result.agent_reply);
     } catch (e) {
+      // Clear the pending chip on the turn that failed rather than leaving it
+      // stuck on "calculating" forever.
       setMessages((prev) => [
-        ...prev,
+        ...prev.map((m, i) =>
+          i === prev.length - 1 && m.role === "user" && m.pending
+            ? { ...m, pending: false }
+            : m,
+        ),
         {
           role: "agent",
           content: `[ERROR: ${e instanceof Error ? e.message : "unknown"}]`,
@@ -656,8 +675,23 @@ export default function BattleScreen() {
                 >
                   {msg.content}
                 </div>
+                {/* Pending chip — shown the instant the turn is sent, before
+                    the judge's verdict comes back */}
+                {msg.pending && (
+                  <div
+                    style={{
+                      fontSize: "0.6rem",
+                      color: "var(--nes-gray)",
+                      padding: "4px 8px",
+                      border: "2px solid var(--nes-gray)",
+                      background: "rgba(109,109,109,0.15)",
+                    }}
+                  >
+                    ⏳ CALCULATING DAMAGE{".".repeat(calcDots)}
+                  </div>
+                )}
                 {/* Damage chip — only shown when damage is known and non-zero */}
-                {msg.damage != null && msg.damage > 0 && (
+                {!msg.pending && msg.damage != null && msg.damage > 0 && (
                   <div
                     style={{
                       fontSize: "0.6rem",
@@ -716,24 +750,25 @@ export default function BattleScreen() {
                       })()}
                   </div>
                 )}
-                {/* No-damage chip — only the user's turn is judged for misuse */}
-                {msg.role === "user" &&
+                {/* Miss chip — only the user's turn is judged for misuse */}
+                {!msg.pending &&
+                  msg.role === "user" &&
                   msg.damage === 0 &&
                   msg.damage_reason && (
                     <div
                       style={{
                         fontSize: "0.6rem",
-                        color: "var(--nes-yellow)",
+                        color: "var(--nes-orange)",
                         padding: "4px 8px",
-                        border: "2px solid var(--nes-yellow)",
-                        background: "rgba(255,193,7,0.12)",
+                        border: "2px solid var(--nes-orange)",
+                        background: "rgba(224,108,0,0.12)",
                         display: "flex",
                         flexDirection: "column",
                         gap: 3,
                       }}
                     >
-                      <span>⚠ NO DAMAGE</span>
-                      <span style={{ color: "rgba(255,193,7,0.75)" }}>
+                      <span>💨 YOU MISSED</span>
+                      <span style={{ color: "rgba(224,108,0,0.75)" }}>
                         {msg.damage_reason}
                       </span>
                     </div>
