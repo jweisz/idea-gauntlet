@@ -38,7 +38,7 @@ dev = [
 include = ["app*"]
 
 [tool.setuptools.package-data]
-app = ["config.toml"]
+app = ["config.toml", "agents/presets/*.md"]
 
 [tool.mypy]
 python_version = "3.11"
