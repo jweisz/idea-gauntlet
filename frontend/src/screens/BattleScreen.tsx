@@ -716,6 +716,28 @@ export default function BattleScreen() {
                       })()}
                   </div>
                 )}
+                {/* No-damage chip — only the user's turn is judged for misuse */}
+                {msg.role === "user" &&
+                  msg.damage === 0 &&
+                  msg.damage_reason && (
+                    <div
+                      style={{
+                        fontSize: "0.6rem",
+                        color: "var(--nes-yellow)",
+                        padding: "4px 8px",
+                        border: "2px solid var(--nes-yellow)",
+                        background: "rgba(255,193,7,0.12)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                      }}
+                    >
+                      <span>⚠ NO DAMAGE</span>
+                      <span style={{ color: "rgba(255,193,7,0.75)" }}>
+                        {msg.damage_reason}
+                      </span>
+                    </div>
+                  )}
               </div>
             </div>
           );

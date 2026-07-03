@@ -604,8 +604,12 @@ async def battle_message(
             "The critics refuse to take the bait — they only respond to a genuine "
             "defense of your idea. Stay on topic and make your case."
         )
+        no_damage_reason = guard.reason or {
+            "off_topic": "Didn't engage with the debate",
+            "prompt_injection": "Tried to redirect the critics instead of debating",
+        }.get(guard.label or "", "Not a genuine debate move")
         user_msg.damage = 0
-        user_msg.damage_reason = None
+        user_msg.damage_reason = no_damage_reason
         db.add(
             BattleMessage(
                 boss_id=boss.id,
@@ -620,7 +624,7 @@ async def battle_message(
         return BattleTurnOut(
             agent_reply=rejection,
             user_damage=0,
-            user_damage_reason=None,
+            user_damage_reason=no_damage_reason,
             agent_damage=0,
             agent_damage_reason=None,
             user_hp=boss.user_hp,
