@@ -8,6 +8,7 @@ Handles:
 - Generating a final synthesis summary across all defeated bosses
 """
 
+import difflib
 import json
 import logging
 from dataclasses import dataclass
@@ -38,6 +39,14 @@ MIN_DAMAGE: int = _GAMEPLAY["min_damage"]
 MAX_DAMAGE: int = _GAMEPLAY["max_damage"]
 # Target length for an agent's battle reply (used in the system prompt).
 REPLY_WORD_LIMIT: int = _GAMEPLAY["reply_word_limit"]
+
+# Copy-paste guard: a player pasting the critic's own prior words back reads to
+# the judge LLM as a coherent, on-topic, directly-engaging rebuttal — it scores
+# well precisely because it's the critic's own well-formed argument. Caught
+# heuristically (no LLM needed) rather than left to the judge. Below this
+# length, coincidental overlap is common enough not to be worth flagging.
+COPY_PASTE_MIN_CHARS = 40
+COPY_PASTE_SIMILARITY_THRESHOLD = 0.85
 
 # Difficulty multipliers applied after scoring.
 # "user" = multiplier on damage the player deals to the boss.
@@ -246,10 +255,45 @@ def _format_reason(synthesis: str, ev: int, lo: int, en: int, no: int) -> str:
     )
 
 
+def _detect_copied_from_boss(
+    user_message: str, prior_agent_messages: list[str]
+) -> str | None:
+    """
+    Check whether the player's message is an exact or near-duplicate of
+    something the boss already said (a prior agent turn), whether copied
+    whole, paraphrased slightly, or lifted as a large chunk. Returns a
+    player-facing miss reason if so, else None.
+    """
+    user_norm = " ".join(user_message.lower().split())
+    if len(user_norm) < COPY_PASTE_MIN_CHARS:
+        return None
+
+    for agent_text in prior_agent_messages:
+        agent_norm = " ".join(agent_text.lower().split())
+        if len(agent_norm) < COPY_PASTE_MIN_CHARS:
+            continue
+
+        if user_norm == agent_norm:
+            return "Just repeated the critic's own words back at them"
+
+        matcher = difflib.SequenceMatcher(None, user_norm, agent_norm)
+        if matcher.ratio() >= COPY_PASTE_SIMILARITY_THRESHOLD:
+            return "Paraphrased the critic's own point back at them instead of arguing"
+
+        # Whole-message similarity misses a short user message that lifts one
+        # big chunk out of a longer boss reply — check the longest shared run too.
+        match = matcher.find_longest_match(0, len(user_norm), 0, len(agent_norm))
+        if match.size >= COPY_PASTE_MIN_CHARS and match.size >= 0.6 * len(user_norm):
+            return "Lifted the critic's own words instead of making an argument"
+
+    return None
+
+
 async def score_exchange(
     idea: str,
     user_message: str,
     agent_reply: str,
+    prior_agent_messages: list[str] | None = None,
 ) -> tuple[int, str | None, int, str | None, GuardResult]:
     """
     Score each argument on four dimensions (1-10 each):
@@ -266,6 +310,11 @@ async def score_exchange(
     in here to avoid an extra round trip). Only the latter is "abuse" for
     enforcement purposes (GuardResult.flagged); off-topic is just a miss — the
     critic still counter-attacks normally.
+
+    A message that's an exact or near-duplicate of something the boss already
+    said (see prior_agent_messages / _detect_copied_from_boss) is also forced to
+    a miss, regardless of what the judge LLM scored it — pasting the critic's
+    own words back tends to read to the judge as a strong, on-topic rebuttal.
 
     Returns (user_damage, user_reason, agent_damage, agent_reason, guard).
     """
@@ -353,8 +402,20 @@ async def score_exchange(
         verdict = s.get("verdict") if isinstance(s.get("verdict"), dict) else {}
         category = str(verdict.get("category") or "none")
         verdict_reason = str(verdict.get("reason") or "").strip() or None
+
+        # Heuristic override, not left to the judge: a player pasting the
+        # critic's own prior words back reads as a coherent, directly-engaging
+        # rebuttal and tends to score well on its own merits. Force it to a
+        # miss regardless of what the LLM verdict said.
+        copied_reason = _detect_copied_from_boss(
+            user_message, prior_agent_messages or []
+        )
+        if copied_reason:
+            category = "copied"
+            verdict_reason = copied_reason
+
         # Only a flagrant circumvention attempt is "abuse" for enforcement
-        # purposes — off-topic is an ordinary miss, not misconduct.
+        # purposes — off-topic and copied-text are ordinary misses, not misconduct.
         flagged = category == "prompt_injection"
         guard = GuardResult(
             flagged=flagged,
@@ -363,7 +424,7 @@ async def score_exchange(
             reason=verdict_reason,
         )
 
-        if category == "off_topic":
+        if category in ("off_topic", "copied"):
             user_dmg = 0
             user_reason = verdict_reason or "Didn't engage with the debate"
         else:

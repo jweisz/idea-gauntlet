@@ -573,6 +573,12 @@ async def battle_message(
         battle_messages=all_messages,
     )
 
+    # Prior boss replies only (this turn's agent_reply doesn't exist yet at the
+    # moment the player typed user_content, so it can't be what they copied).
+    prior_agent_messages = [
+        m.content for m in all_messages if m.role == "agent"
+    ]
+
     # Score the exchange (also classifies the user message for misuse)
     (
         user_damage,
@@ -584,6 +590,7 @@ async def battle_message(
         idea=session.idea,
         user_message=user_content,
         agent_reply=agent_reply,
+        prior_agent_messages=prior_agent_messages,
     )
 
     # Flagrant circumvention attempt (prompt injection): reject in-character, deal
