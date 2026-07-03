@@ -13,7 +13,12 @@ export default function AudioControls() {
 
   const base: React.CSSProperties = {
     background: "var(--nes-darkgray)",
-    border: "3px solid var(--nes-gray)",
+    // Longhand (not the `border` shorthand) so the `active` variant below can
+    // override just borderColor without React warning about mixing shorthand +
+    // non-shorthand for the same value.
+    borderWidth: 3,
+    borderStyle: "solid",
+    borderColor: "var(--nes-gray)",
     boxShadow: "4px 4px 0 var(--nes-gray)",
     color: "var(--nes-white)",
     fontFamily: "inherit",

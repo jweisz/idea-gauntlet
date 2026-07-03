@@ -30,7 +30,11 @@ const selectStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   background: "var(--nes-black)",
-  border: "2px solid var(--nes-gray)",
+  // Longhand so inputFocusStyle can override just borderColor without React
+  // warning about mixing the `border` shorthand with borderColor.
+  borderWidth: 2,
+  borderStyle: "solid",
+  borderColor: "var(--nes-gray)",
   color: "var(--nes-white)",
   fontFamily: "inherit",
   fontSize: "0.55rem",
