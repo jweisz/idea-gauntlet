@@ -590,6 +590,13 @@ async def battle_message(
     # no progress so the app can't be used as a free general-purpose LLM. The
     # overlay hook records the event and applies enforcement (no-op in self-host).
     if guard.flagged:
+        logger.warning(
+            "Judge flagged turn as misuse (boss_id=%s, label=%s, reason=%r); "
+            "dealing no damage this turn",
+            boss.id,
+            guard.label,
+            guard.reason,
+        )
         deps.on_guard_result(
             principal=user_id, session_id=session_id, guard=guard, db=db
         )
