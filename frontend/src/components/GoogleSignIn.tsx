@@ -9,23 +9,6 @@ import { useGameName } from "../store/configStore";
  * exchanges the credential for an app JWT via the hosted /api/auth/google
  * endpoint.
  */
-interface GoogleIdentityServices {
-  accounts: {
-    id: {
-      initialize(config: {
-        client_id: string;
-        callback: (response: { credential: string }) => void;
-      }): void;
-      renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
-    };
-  };
-}
-
-declare global {
-  interface Window {
-    google?: GoogleIdentityServices;
-  }
-}
 
 const GIS_SRC = "https://accounts.google.com/gsi/client";
 

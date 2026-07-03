@@ -12,6 +12,7 @@ import { useGameName } from "../store/configStore";
 import CreditsBadge from "../components/CreditsBadge";
 import { useLlmConfigured } from "../hooks/useLlmConfigured";
 import { useUIStore } from "../store/uiStore";
+import { clearAuthSession, disableGoogleAutoSelect } from "../lib/auth";
 
 /**
  * Your Games — the landing screen.
@@ -34,6 +35,7 @@ export default function HomeScreen() {
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
   const [acceptingNewPlayers, setAcceptingNewPlayers] = useState(true);
   const [billingEnabled, setBillingEnabled] = useState(false);
+  const [googleAuth, setGoogleAuth] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SessionListItem | null>(
     null,
@@ -55,10 +57,20 @@ export default function HomeScreen() {
         setLeaderboardEnabled(c.leaderboard_enabled);
         setAcceptingNewPlayers(c.accepting_new_players);
         setBillingEnabled(c.billing_enabled);
+        setGoogleAuth(c.auth === "google");
       })
       // Config already loaded at startup; ignore a transient re-fetch blip.
       .catch(() => {});
   }, []);
+
+  const handleSignOut = () => {
+    blip();
+    clearAuthSession();
+    // So the account chooser shows next sign-in instead of GIS silently
+    // re-selecting whichever Google account is still signed in.
+    disableGoogleAutoSelect();
+    window.location.assign("/");
+  };
 
   const startNew = () => {
     if (!acceptingNewPlayers) {
@@ -113,9 +125,27 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
-      {billingEnabled && (
-        <div style={{ alignSelf: "flex-end" }}>
-          <CreditsBadge />
+      {(billingEnabled || googleAuth) && (
+        <div
+          style={{
+            alignSelf: "stretch",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            {googleAuth && (
+              <button
+                className="pixel-btn"
+                style={{ fontSize: "0.7rem", padding: "8px 14px" }}
+                onClick={handleSignOut}
+              >
+                SIGN OUT
+              </button>
+            )}
+          </div>
+          {billingEnabled && <CreditsBadge />}
         </div>
       )}
 

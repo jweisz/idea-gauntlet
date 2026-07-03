@@ -1,5 +1,24 @@
 // Lightweight client-side auth session, persisted in localStorage.
 
+interface GoogleIdentityServices {
+  accounts: {
+    id: {
+      initialize(config: {
+        client_id: string;
+        callback: (response: { credential: string }) => void;
+      }): void;
+      renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+      disableAutoSelect(): void;
+    };
+  };
+}
+
+declare global {
+  interface Window {
+    google?: GoogleIdentityServices;
+  }
+}
+
 export interface AuthSession {
   accessToken: string | null;
   tokenType: "bearer";
@@ -55,6 +74,15 @@ export function setJwtSession(
 
 export function clearAuthSession(): void {
   window.localStorage.removeItem(AUTH_SESSION_KEY);
+}
+
+/**
+ * Call on sign-out. Without this, GIS silently re-selects the same Google
+ * account on the next sign-in attempt instead of showing the account
+ * chooser, which would defeat the point of signing out to switch accounts.
+ */
+export function disableGoogleAutoSelect(): void {
+  window.google?.accounts.id.disableAutoSelect();
 }
 
 export function isAuthenticated(): boolean {
