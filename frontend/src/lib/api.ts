@@ -92,20 +92,26 @@ export interface AppConfig {
   accepting_new_players: boolean;
 }
 
-const SELF_HOST_CONFIG: AppConfig = {
-  game_name: "Idea Gauntlet",
-  auth: "local",
-  google_client_id: "",
-  billing_enabled: false,
-  show_api_key_settings: true,
-  show_model_selection: true,
-  leaderboard_enabled: true,
-  accepting_new_players: true,
-};
-
 export const configApi = {
-  // Falls back to permissive self-host flags if the endpoint is unavailable.
-  get: () => apiJson<AppConfig>("/api/config").catch(() => SELF_HOST_CONFIG),
+  // Load the app's feature flags. Retries a few times before giving up: a
+  // transient failure at startup must NOT be mistaken for "this is a self-host
+  // install" — that mistake would show the model/API-key settings and skip auth.
+  // Throws once the backend is confirmed unreachable so the caller can surface a
+  // connection error instead of silently running in the wrong mode.
+  get: async (attempts = 4, delayMs = 600): Promise<AppConfig> => {
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await apiJson<AppConfig>("/api/config");
+      } catch (e) {
+        lastErr = e;
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+    throw lastErr;
+  },
 };
 
 // --- Hosted-only API surface (endpoints exist only in the hosted deployment) ---

@@ -20,7 +20,7 @@ const SERVER_CONFIG = {
 };
 
 beforeEach(() => {
-  useConfigStore.setState({ config: null });
+  useConfigStore.setState({ config: null, error: false });
   getMock.mockReset();
 });
 
@@ -47,6 +47,29 @@ describe("useConfigStore.load", () => {
     expect(first).toEqual(SERVER_CONFIG);
     expect(second).toEqual(SERVER_CONFIG);
     expect(getMock).toHaveBeenCalledTimes(1);
+    expect(useConfigStore.getState().config).toEqual(SERVER_CONFIG);
+  });
+
+  it("sets error and resolves null when the backend is unreachable", async () => {
+    getMock.mockRejectedValue(new Error("unreachable"));
+
+    const result = await useConfigStore.getState().load();
+
+    expect(result).toBeNull();
+    expect(useConfigStore.getState().error).toBe(true);
+    expect(useConfigStore.getState().config).toBeNull();
+  });
+
+  it("reload() recovers after an earlier failure", async () => {
+    getMock.mockRejectedValueOnce(new Error("unreachable"));
+    await useConfigStore.getState().load();
+    expect(useConfigStore.getState().error).toBe(true);
+
+    getMock.mockResolvedValue(SERVER_CONFIG);
+    const recovered = await useConfigStore.getState().reload();
+
+    expect(recovered).toEqual(SERVER_CONFIG);
+    expect(useConfigStore.getState().error).toBe(false);
     expect(useConfigStore.getState().config).toEqual(SERVER_CONFIG);
   });
 });

@@ -75,14 +75,41 @@ describe("apiJson", () => {
 });
 
 describe("configApi.get", () => {
-  it("returns permissive self-host flags when the endpoint fails", async () => {
-    mockFetch(new Response("nope", { status: 404 }));
+  it("retries then throws when the endpoint stays unreachable", async () => {
+    // Fresh Response per call (a Response body can only be read once).
+    const fn = vi.fn(() =>
+      Promise.resolve(new Response("nope", { status: 503 })),
+    );
+    globalThis.fetch = fn as unknown as typeof fetch;
 
-    const config = await configApi.get();
-    expect(config.auth).toBe("local");
-    expect(config.billing_enabled).toBe(false);
-    expect(config.show_api_key_settings).toBe(true);
-    expect(config.accepting_new_players).toBe(true);
+    await expect(configApi.get(3, 0)).rejects.toBeInstanceOf(ApiError);
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it("recovers if a later attempt succeeds (no permissive fallback)", async () => {
+    const ok = new Response(
+      JSON.stringify({
+        game_name: "Hosted",
+        auth: "google",
+        google_client_id: "",
+        billing_enabled: false,
+        show_api_key_settings: false,
+        show_model_selection: false,
+        leaderboard_enabled: true,
+        accepting_new_players: true,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network down"))
+      .mockResolvedValueOnce(ok);
+    globalThis.fetch = fn as unknown as typeof fetch;
+
+    const config = await configApi.get(3, 0);
+    expect(config.auth).toBe("google");
+    expect(config.show_api_key_settings).toBe(false);
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it("returns the server config when the endpoint succeeds", async () => {

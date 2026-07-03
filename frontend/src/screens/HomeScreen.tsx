@@ -49,11 +49,15 @@ export default function HomeScreen() {
           e instanceof ApiError ? e.detail : "Failed to load your games",
         ),
       );
-    configApi.get().then((c) => {
-      setLeaderboardEnabled(c.leaderboard_enabled);
-      setAcceptingNewPlayers(c.accepting_new_players);
-      setBillingEnabled(c.billing_enabled);
-    });
+    configApi
+      .get()
+      .then((c) => {
+        setLeaderboardEnabled(c.leaderboard_enabled);
+        setAcceptingNewPlayers(c.accepting_new_players);
+        setBillingEnabled(c.billing_enabled);
+      })
+      // Config already loaded at startup; ignore a transient re-fetch blip.
+      .catch(() => {});
   }, []);
 
   const startNew = () => {

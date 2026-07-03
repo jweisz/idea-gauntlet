@@ -88,7 +88,10 @@ export default function SummaryScreen() {
   const [publishError, setPublishError] = useState<string | null>(null);
 
   useEffect(() => {
-    configApi.get().then((c) => setLeaderboardEnabled(c.leaderboard_enabled));
+    configApi
+      .get()
+      .then((c) => setLeaderboardEnabled(c.leaderboard_enabled))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

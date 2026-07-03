@@ -14,6 +14,8 @@ import {
 } from "./lib/auth";
 import { useConfigStore } from "./store/configStore";
 import GoogleSignIn from "./components/GoogleSignIn";
+import ConnectionError from "./components/ConnectionError";
+import type { AppConfig } from "./lib/api";
 import { useAudioStore } from "./store/audioStore";
 import { useBgMusic } from "./hooks/useBgMusic";
 import { useGameStore } from "./store/gameStore";
@@ -101,19 +103,28 @@ function SessionRestorer() {
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const config = useConfigStore((s) => s.config);
+  const error = useConfigStore((s) => s.error);
   const load = useConfigStore((s) => s.load);
+  const reload = useConfigStore((s) => s.reload);
   const [authed, setAuthed] = useState(isAuthenticated());
 
+  const applyConfig = (c: AppConfig | null) => {
+    // Self-host / local-open: auto-establish a local-dev session. Guarded on a
+    // real config (never a failed load) so an unreachable backend can't drop us
+    // into a tokenless self-host session.
+    if (c && c.auth !== "google" && !isAuthenticated()) {
+      setAuthSession(buildLocalDevSession());
+    }
+    setAuthed(isAuthenticated());
+  };
+
   useEffect(() => {
-    load().then((c) => {
-      // Self-host / local-open: auto-establish a local-dev session.
-      if (c.auth !== "google" && !isAuthenticated()) {
-        setAuthSession(buildLocalDevSession());
-      }
-      setAuthed(isAuthenticated());
-    });
+    load().then(applyConfig);
   }, [load]);
 
+  if (error && !config) {
+    return <ConnectionError onRetry={() => reload().then(applyConfig)} />;
+  }
   if (!config) return null; // brief: waiting on /api/config
 
   if (config.auth === "google" && !authed) {
