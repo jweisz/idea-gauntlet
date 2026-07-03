@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..models import schema
 from ..models.db import get_db
+from ..core import config
 from ..core.llm import DEFAULT_OLLAMA_URL
 
 router = APIRouter(prefix="/api/providers", tags=["Providers"])
@@ -109,21 +110,22 @@ async def get_available_models(db: Session = Depends(get_db)):
     """
     settings = db.query(schema.GlobalSettings).first()
 
-    # 1. Check Ollama depending on config
-    ollama_url = (
-        settings.ollama_base_url
-        if settings and settings.ollama_base_url
-        else DEFAULT_OLLAMA_URL
-    )
-    ollama_models = await fetch_ollama_models(ollama_url)
-
     providers = []
 
-    if ollama_models is not None:
-        providers.append({"provider": "ollama", "models": ollama_models, "error": None})
-    else:
-        # If None, it means connection failed. We don't add it to providers.
-        pass
+    # 1. Check Ollama depending on config — skipped entirely in hosted mode,
+    # where there's no local Ollama to reach and model/provider switching is
+    # hidden from players anyway (see show_model_selection).
+    if not config.is_hosted():
+        ollama_url = (
+            settings.ollama_base_url
+            if settings and settings.ollama_base_url
+            else DEFAULT_OLLAMA_URL
+        )
+        ollama_models = await fetch_ollama_models(ollama_url)
+        if ollama_models is not None:
+            providers.append(
+                {"provider": "ollama", "models": ollama_models, "error": None}
+            )
 
     # 2. Check Cloud Providers if keys exist
     if settings:

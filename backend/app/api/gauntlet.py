@@ -296,7 +296,9 @@ async def idea_check(
     except Exception:
         # No working judge model (missing/invalid provider key, model unreachable,
         # malformed response, etc.) — surface this as a visible failure rather than
-        # silently waving every idea through the gate.
+        # silently waving every idea through the gate. Log the real cause since the
+        # HTTPException below only carries a generic message to the client.
+        logger.exception("Gatekeeper idea_check failed")
         raise HTTPException(
             status_code=502,
             detail="The gatekeeper is unavailable right now (no working AI model "
