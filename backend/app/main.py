@@ -12,14 +12,14 @@ from app.api.gauntlet import router as gauntlet_router
 from app.api.config import router as config_router
 from app.api.leaderboard import router as leaderboard_router
 from app.core.config import allowed_origins
-from app.services.seed import seed_default_agents, seed_ollama_settings_if_fresh
+from app.services.seed import sync_agents_from_presets, seed_ollama_settings_if_fresh
 
 # Create tables on startup if they don't exist.
 Base.metadata.create_all(bind=engine)
 
-# Seed the agent pool from presets on a fresh database, so the gauntlet has
-# bosses to draw from out of the box. No-op once any agents exist.
-seed_default_agents()
+# Reconcile the agent pool against the bundled presets — adds new bosses,
+# updates changed ones, retires removed ones. Runs on every boot.
+sync_agents_from_presets()
 
 # On a brand-new database, auto-detect an already-running local Ollama and
 # wire it in as a provider. No-op once any settings row exists.

@@ -139,7 +139,9 @@ async def metered_ainvoke(llm, messages, *, provider: str, model: str):
         # Retry once with it unset before giving up.
         if "temperature" in str(e) and "deprecated" in str(e).lower():
             logger.warning(
-                "Model %s/%s rejected `temperature`; retrying without it", provider, model
+                "Model %s/%s rejected `temperature`; retrying without it",
+                provider,
+                model,
             )
             response = await llm.ainvoke(messages, temperature=None)
         else:
