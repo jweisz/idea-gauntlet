@@ -15,6 +15,7 @@ import {
 import { useConfigStore } from "./store/configStore";
 import GoogleSignIn from "./components/GoogleSignIn";
 import ConnectionError from "./components/ConnectionError";
+import LoadingScreen from "./components/LoadingScreen";
 import type { AppConfig } from "./lib/api";
 import { useAudioStore } from "./store/audioStore";
 import { useBgMusic } from "./hooks/useBgMusic";
@@ -125,7 +126,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   if (error && !config) {
     return <ConnectionError onRetry={() => reload().then(applyConfig)} />;
   }
-  if (!config) return null; // brief: waiting on /api/config
+  if (!config) return <LoadingScreen />; // waiting on /api/config (backend spin-up)
 
   if (config.auth === "google" && !authed) {
     return (

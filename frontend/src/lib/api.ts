@@ -93,12 +93,14 @@ export interface AppConfig {
 }
 
 export const configApi = {
-  // Load the app's feature flags. Retries a few times before giving up: a
+  // Load the app's feature flags. Retries for a while before giving up: a
   // transient failure at startup must NOT be mistaken for "this is a self-host
   // install" — that mistake would show the model/API-key settings and skip auth.
-  // Throws once the backend is confirmed unreachable so the caller can surface a
-  // connection error instead of silently running in the wrong mode.
-  get: async (attempts = 4, delayMs = 600): Promise<AppConfig> => {
+  // The retry budget (~2.5min) is sized to outlast a free-tier host waking from
+  // sleep — a cold start can take 1-2min — so the loading screen covers the
+  // spin-up rather than flipping to a connection error mid-wake. Throws once the
+  // backend is confirmed unreachable so the caller can surface a connection error.
+  get: async (attempts = 75, delayMs = 2000): Promise<AppConfig> => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < attempts; attempt++) {
       try {
