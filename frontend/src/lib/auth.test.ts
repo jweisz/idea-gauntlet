@@ -54,6 +54,40 @@ describe("auth session storage", () => {
   });
 });
 
+// Minimal unsigned JWT with the given `exp` (seconds since epoch). base64url,
+// padding stripped — exactly how a real token is shaped.
+function jwtWithExp(exp: number): string {
+  const b64url = (o: object) =>
+    btoa(JSON.stringify(o))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  return `${b64url({ alg: "HS256" })}.${b64url({ sub: "a@b.com", exp })}.sig`;
+}
+
+describe("jwt session expiry", () => {
+  it("treats an expired token as signed-out and clears it", () => {
+    setJwtSession(jwtWithExp(Math.floor(Date.now() / 1000) - 60));
+    expect(isAuthenticated()).toBe(false);
+    expect(getAccessToken()).toBeNull();
+    // isAuthenticated drops the stale session so the app shows sign-in.
+    expect(localStorage.getItem(KEY)).toBeNull();
+  });
+
+  it("keeps a non-expired token", () => {
+    const tok = jwtWithExp(Math.floor(Date.now() / 1000) + 3600);
+    setJwtSession(tok);
+    expect(isAuthenticated()).toBe(true);
+    expect(getAccessToken()).toBe(tok);
+  });
+
+  it("falls back to valid when the token has no readable exp", () => {
+    setJwtSession("not-a-jwt");
+    expect(isAuthenticated()).toBe(true);
+    expect(getAccessToken()).toBe("not-a-jwt");
+  });
+});
+
 describe("withAuthHeaders", () => {
   it("adds the bearer header only when a token exists", () => {
     expect(

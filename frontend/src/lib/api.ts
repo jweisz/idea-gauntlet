@@ -1,4 +1,9 @@
-import { withAuthHeaders } from "./auth";
+import {
+  withAuthHeaders,
+  getAuthSession,
+  clearAuthSession,
+  disableGoogleAutoSelect,
+} from "./auth";
 
 const defaultBase = `${window.location.protocol}//${window.location.hostname}:8000`;
 export const API_BASE =
@@ -41,8 +46,26 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   return fetch(url(path), withAuthHeaders(init));
 }
 
+// When a jwt (hosted) session goes stale server-side — token expired, or the
+// signing secret rotated — authenticated calls come back 401. Rather than let
+// the app keep rendering a logged-in shell whose data never loads, drop the
+// session and bounce to sign-in. Guarded to jwt sessions so self-host/local-
+// open (which never carry a token) is untouched, and latched so a burst of
+// concurrent 401s triggers a single redirect.
+let handlingAuthExpiry = false;
+function handleAuthExpiry(): void {
+  if (handlingAuthExpiry) return;
+  const s = getAuthSession();
+  if (!s || s.mode !== "jwt") return;
+  handlingAuthExpiry = true;
+  clearAuthSession();
+  disableGoogleAutoSelect();
+  window.location.assign("/"); // AuthGate re-evaluates → Google sign-in screen
+}
+
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await apiFetch(path, init);
+  if (res.status === 401) handleAuthExpiry();
   if (!res.ok) throw new ApiError(res.status, await readDetail(res));
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -85,6 +108,7 @@ export interface AppConfig {
   game_name: string;
   auth: string;
   google_client_id: string;
+  credits_enabled: boolean;
   billing_enabled: boolean;
   show_api_key_settings: boolean;
   show_model_selection: boolean;
@@ -131,6 +155,18 @@ export const authApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential }),
     }),
+};
+
+export interface CreditsInfo {
+  balance: number;
+  monthly_grant: number;
+  billing_enabled: boolean;
+}
+
+// Always available in the hosted deployment (config.credits_enabled), even when
+// self-serve billing is off — the balance drives the coin badge.
+export const creditsApi = {
+  me: () => apiJson<CreditsInfo>("/api/credits/me"),
 };
 
 export interface BillingInfo {

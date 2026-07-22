@@ -34,7 +34,7 @@ export default function HomeScreen() {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
   const [acceptingNewPlayers, setAcceptingNewPlayers] = useState(true);
-  const [billingEnabled, setBillingEnabled] = useState(false);
+  const [creditsEnabled, setCreditsEnabled] = useState(false);
   const [googleAuth, setGoogleAuth] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SessionListItem | null>(
@@ -56,7 +56,7 @@ export default function HomeScreen() {
       .then((c) => {
         setLeaderboardEnabled(c.leaderboard_enabled);
         setAcceptingNewPlayers(c.accepting_new_players);
-        setBillingEnabled(c.billing_enabled);
+        setCreditsEnabled(c.credits_enabled);
         setGoogleAuth(c.auth === "google");
       })
       // Config already loaded at startup; ignore a transient re-fetch blip.
@@ -125,7 +125,7 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
-      {billingEnabled && (
+      {creditsEnabled && (
         <div style={{ alignSelf: "flex-end" }}>
           <CreditsBadge />
         </div>

@@ -12,6 +12,7 @@ const SERVER_CONFIG = {
   game_name: "Custom Name",
   auth: "local",
   google_client_id: "",
+  credits_enabled: false,
   billing_enabled: false,
   show_api_key_settings: true,
   show_model_selection: true,

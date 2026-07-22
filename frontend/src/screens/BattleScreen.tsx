@@ -501,8 +501,11 @@ export default function BattleScreen() {
         />
       )}
 
-      {/* HP bars */}
+      {/* HP bars. `battle-hp-panel` marks this as the collision target the
+          global audio controls measure against: they collapse to icons, then
+          stack vertically, as this panel's right edge approaches them. */}
       <div
+        className="battle-hp-panel"
         style={{
           display: "flex",
           gap: 24,

@@ -41,8 +41,44 @@ export function getAuthSession(): AuthSession | null {
   }
 }
 
+/**
+ * Decode a JWT's `exp` claim (seconds since epoch) without verifying the
+ * signature — enough to know locally whether the token has expired. Returns
+ * null if the token isn't a well-formed JWT with a numeric `exp`.
+ */
+function getTokenExp(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    // base64url → base64, restoring the padding JWT strips (strict atob needs it).
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const json = atob(padded);
+    const parsed = JSON.parse(json) as { exp?: number };
+    return typeof parsed.exp === "number" ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True once a jwt session's token has expired (with 30s of clock skew). local-
+ * dev sessions never expire. If the token has no readable `exp`, we can't tell
+ * locally — treat it as valid and let the server reject it with a 401 (handled
+ * reactively in api.ts).
+ */
+export function isSessionExpired(session: AuthSession): boolean {
+  if (session.mode !== "jwt" || !session.accessToken) return false;
+  const exp = getTokenExp(session.accessToken);
+  if (exp === null) return false;
+  return Date.now() / 1000 >= exp - 30;
+}
+
 export function getAccessToken(): string | null {
-  return getAuthSession()?.accessToken ?? null;
+  const s = getAuthSession();
+  // Don't send a token we already know is expired.
+  if (!s || isSessionExpired(s)) return null;
+  return s.accessToken;
 }
 
 export function withAuthHeaders(init?: RequestInit): RequestInit {
@@ -87,5 +123,12 @@ export function disableGoogleAutoSelect(): void {
 
 export function isAuthenticated(): boolean {
   const s = getAuthSession();
-  return s !== null;
+  if (!s) return false;
+  // An expired token is as good as signed-out: drop it so the app shows the
+  // sign-in screen instead of a logged-in shell whose data calls all 401.
+  if (isSessionExpired(s)) {
+    clearAuthSession();
+    return false;
+  }
+  return true;
 }
