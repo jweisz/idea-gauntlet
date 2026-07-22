@@ -572,3 +572,13 @@ body::after {
   justify-content: center;
   padding: 32px 16px;
 }
+
+/* Top-right audio controls collapse in two steps as they run out of room next
+   to a top-anchored header (the battle HP panel): first the text labels drop so
+   the buttons are icon-only, then the row stacks into a vertical column. Which
+   step is active is decided by measuring the actual overlap in AudioControls.tsx
+   (the `--icons` / `--stack` modifier), so it adapts to any panel width. */
+.audio-controls--icons .audio-controls__label,
+.audio-controls--stack .audio-controls__label {
+  display: none;
+}

@@ -115,6 +115,7 @@ def get_app_config() -> dict:
         "game_name": config.game_name(),
         "auth": "local",
         "google_client_id": "",
+        "credits_enabled": False,
         "billing_enabled": False,
         "show_api_key_settings": llm_settings_visible,
         "show_model_selection": llm_settings_visible,

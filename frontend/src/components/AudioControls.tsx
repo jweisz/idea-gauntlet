@@ -1,7 +1,23 @@
+import { useLayoutEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAudioStore } from "../store/audioStore";
 import { useUIStore } from "../store/uiStore";
 import { getAudioContext } from "../hooks/useChiptune";
 import SettingsModal from "./SettingsModal";
+
+/**
+ * BGM / SFX / Settings controls, anchored to the top-right of the window.
+ *
+ * They collapse in two steps as they run out of room beside a top-anchored
+ * header — in practice only the battle screen's HP panel (marked
+ * `.battle-hp-panel`). We measure the panel's right edge against the space the
+ * controls need and step down: full labels → icons only → vertical stack. On
+ * screens with no such header the controls keep their labels until the viewport
+ * itself is narrower than the labeled row. Measuring (rather than hard-coding
+ * viewport breakpoints) keeps it correct regardless of font metrics or how wide
+ * the panel renders.
+ */
+type Mode = "full" | "icons" | "stack";
 
 export default function AudioControls() {
   const { musicEnabled, sfxEnabled, toggleMusic, toggleSfx } = useAudioStore();
@@ -10,6 +26,66 @@ export default function AudioControls() {
     openSettings,
     closeSettings,
   } = useUIStore();
+
+  const location = useLocation();
+  const [mode, setMode] = useState<Mode>("full");
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Row widths of the controls in each layout, measured once while labels are
+  // visible (mode === "full") and reused on later resizes.
+  const rowWidthsRef = useRef<{ full: number; icons: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const recompute = () => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      // Measure the labeled + icon-only row widths while the labels are in the
+      // DOM. Only possible in "full"; cached for the collapsed modes.
+      if (mode === "full") {
+        const full = el.getBoundingClientRect().width;
+        let labels = 0;
+        el.querySelectorAll<HTMLElement>(".audio-controls__label").forEach(
+          // + the 6px flex gap between icon and label, which also collapses
+          (l) => (labels += l.offsetWidth + 6),
+        );
+        rowWidthsRef.current = { full, icons: Math.max(0, full - labels) };
+      }
+      const widths = rowWidthsRef.current;
+      if (!widths) return;
+
+      const panel = document.querySelector<HTMLElement>(".battle-hp-panel");
+      const panelRight = panel ? panel.getBoundingClientRect().right : 0;
+      const RIGHT_INSET = 12;
+      const GAP = 12;
+      const leftFor = (w: number) => window.innerWidth - RIGHT_INSET - w;
+
+      const next: Mode =
+        leftFor(widths.full) >= panelRight + GAP
+          ? "full"
+          : leftFor(widths.icons) >= panelRight + GAP
+            ? "icons"
+            : "stack";
+      setMode((m) => (m === next ? m : next));
+    };
+
+    recompute();
+    window.addEventListener("resize", recompute);
+    // The panel's width also shifts with its content (e.g. a long boss name
+    // loading in), which fires no resize event — observe it directly.
+    const panel = document.querySelector<HTMLElement>(".battle-hp-panel");
+    let ro: ResizeObserver | undefined;
+    if (panel && "ResizeObserver" in window) {
+      ro = new ResizeObserver(recompute);
+      ro.observe(panel);
+    }
+    // Custom pixel font can change widths after first paint.
+    document.fonts?.ready?.then(recompute).catch(() => {});
+
+    return () => {
+      window.removeEventListener("resize", recompute);
+      ro?.disconnect();
+    };
+  }, [mode, location.pathname]);
 
   const base: React.CSSProperties = {
     background: "var(--nes-darkgray)",
@@ -45,14 +121,18 @@ export default function AudioControls() {
 
   return (
     <div
+      ref={containerRef}
+      className={`audio-controls audio-controls--${mode}`}
       style={{
         position: "fixed",
         top: 12,
         right: 12,
         zIndex: 1000,
         display: "flex",
+        flexDirection: mode === "stack" ? "column" : "row",
         gap: 8,
-        alignItems: "center",
+        alignItems: mode === "stack" ? "flex-end" : "center",
+        maxWidth: "calc(100vw - 24px)",
       }}
     >
       {/* ── BGM toggle ─────────────────────────────────────────────── */}
@@ -70,6 +150,7 @@ export default function AudioControls() {
       >
         <span>{musicEnabled ? "🔊" : "🔇"}</span>
         <span
+          className="audio-controls__label"
           style={{
             fontSize: "0.65rem",
             color: musicEnabled ? "var(--nes-cyan)" : "var(--nes-gray)",
@@ -89,6 +170,7 @@ export default function AudioControls() {
       >
         <span>{sfxEnabled ? "🔊" : "🔕"}</span>
         <span
+          className="audio-controls__label"
           style={{
             fontSize: "0.65rem",
             color: sfxEnabled ? "var(--nes-cyan)" : "var(--nes-gray)",
@@ -115,6 +197,7 @@ export default function AudioControls() {
       >
         <span style={{ fontSize: "1.3em" }}>⚙️</span>
         <span
+          className="audio-controls__label"
           style={{
             fontSize: "0.65rem",
             color: showSettings ? "var(--nes-yellow)" : "var(--nes-gray)",
