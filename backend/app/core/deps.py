@@ -20,6 +20,14 @@ Overlay wiring (in the private repo) looks like:
     app.dependency_overrides[require_play_credit]    = credits.enforce_credit
     app.dependency_overrides[accepting_new_players]  = credits.spend_gate
     app.dependency_overrides[get_app_config]         = hosted_config.hosted_config
+
+    app.core.deps.settle_play        = credits.debit_play
+
+A play is paid for when the game actually starts, not before: ``settle_play``
+debits once ``POST /sessions`` has created the session. ``require_play_credit``
+only *authorizes*, and runs at both the gatekeeper and game creation, so a
+player with an empty balance is turned away before the gatekeeper spends an LLM
+call on them — and anything they abandon along the way is free.
 """
 
 from dataclasses import dataclass
@@ -51,13 +59,15 @@ def accepting_new_players() -> bool:
 
 
 def require_play_credit(principal: str = Depends(get_current_principal)) -> str:
-    """Authorize (not charge) a new game, before it is created.
+    """Authorize (not charge) a play.
 
     Default (self-host): no-op — always allows, returns the principal. The
     hosted overlay overrides this to *check* the user may play (HTTP 402 when the
-    balance is zero, 403 when suspended) WITHOUT debiting. The actual debit
-    happens in ``settle_play`` after the game is successfully created, so a
-    malformed/rejected request never consumes a credit.
+    balance is zero, 403 when suspended) WITHOUT debiting.
+
+    Runs at two points: the gatekeeper, so an empty balance is reported before
+    the idea check burns an LLM call, and game creation, which is where
+    ``settle_play`` then debits.
     """
     return principal
 
@@ -69,6 +79,10 @@ def settle_play(principal: str, db=None) -> None:
     (``app.core.deps.settle_play = ...`` at import) to debit one credit. Pairs
     with the ``require_play_credit`` authorize check. Implementations must not
     raise — a created game should never fail on the debit step.
+
+    Charging here, rather than at the gatekeeper, means everything a player
+    abandons on the way to START is free: a rejected idea, a gatekeeper that
+    errors out, or a setup they walk away from before choosing challengers.
     """
     return None
 

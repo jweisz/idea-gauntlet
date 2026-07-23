@@ -46,7 +46,7 @@ export default function IdeaEntryScreen() {
           className="text-cyan animate-glow"
           style={{ fontSize: "1.6rem", marginBottom: 10, letterSpacing: 4 }}
         >
-          {gameName.toUpperCase()}
+          <span className="toolbar-clearance">{gameName.toUpperCase()}</span>
         </h1>
         <p
           style={{

@@ -308,7 +308,7 @@ export default function StageSelectScreen() {
     <div className="screen" style={{ gap: 24 }}>
       <div style={{ textAlign: "center" }}>
         <h1 className="text-cyan" style={{ fontSize: "1rem", marginBottom: 6 }}>
-          STAGE SELECT
+          <span className="toolbar-clearance">STAGE SELECT</span>
         </h1>
         <p
           style={{

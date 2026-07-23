@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
+import { useConfigStore } from "../store/configStore";
 import { useChiptune } from "../hooks/useChiptune";
+import CreditsBadge from "../components/CreditsBadge";
 import { gauntlet, ApiError, type IdeaCheckCategory } from "../lib/api";
 
-type Phase = "checking" | "approved" | "rejected" | "error";
+/**
+ * Nothing is charged here — a play is paid for at START on challenger select —
+ * but the balance is still *checked* (`POST /api/gauntlet/idea-check` runs the
+ * credit authorization), so a player with none is stopped here rather than
+ * after picking challengers. Hence the dedicated "no-credits" phase.
+ */
+type Phase = "checking" | "approved" | "rejected" | "error" | "no-credits";
 
 const CATEGORY_LABEL: Record<IdeaCheckCategory, string> = {
   ok: "PASSABLE",
@@ -23,6 +31,11 @@ export default function GatekeeperScreen() {
   const [category, setCategory] = useState<IdeaCheckCategory>();
   const [reason, setReason] = useState<string>();
   const [dots, setDots] = useState(1);
+  const billingEnabled =
+    useConfigStore((s) => s.config?.billing_enabled) ?? false;
+
+  // Guards the mount effect below; see the comment there.
+  const checkStarted = useRef(false);
 
   const check = () => {
     gauntlet
@@ -38,7 +51,13 @@ export default function GatekeeperScreen() {
       })
       .catch((e) => {
         setReason(e instanceof ApiError ? e.detail : undefined);
-        setPhase("error");
+        if (e instanceof ApiError && e.status === 402) {
+          setPhase("no-credits");
+        } else if (e instanceof ApiError && e.status === 503) {
+          navigate("/waitlist");
+        } else {
+          setPhase("error");
+        }
       });
   };
 
@@ -52,6 +71,10 @@ export default function GatekeeperScreen() {
       navigate("/new", { replace: true });
       return;
     }
+    // Fire exactly once per mount: StrictMode runs mount effects twice in dev,
+    // and the check is a (paid, slow) LLM call — no reason to make it twice.
+    if (checkStarted.current) return;
+    checkStarted.current = true;
     // Initial phase is already "checking" — just kick off the request.
     check();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,11 +89,13 @@ export default function GatekeeperScreen() {
 
   useEffect(() => {
     if (phase === "approved") gatekeeperApprove();
-    if (phase === "rejected" || phase === "error") gatekeeperReject();
+    if (phase === "rejected" || phase === "error" || phase === "no-credits")
+      gatekeeperReject();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const isBad = phase === "rejected" || phase === "error";
+  const isBad =
+    phase === "rejected" || phase === "error" || phase === "no-credits";
   const color =
     phase === "approved"
       ? "var(--nes-green)"
@@ -140,13 +165,15 @@ export default function GatekeeperScreen() {
         </p>
       )}
 
-      {(phase === "rejected" || phase === "error") && (
+      {isBad && (
         <>
           <p style={{ fontSize: "0.8rem", color, letterSpacing: 1 }}>
             ◆{" "}
             {phase === "error"
               ? "THE GATE WILL NOT OPEN"
-              : CATEGORY_LABEL[category ?? "no_position"]}
+              : phase === "no-credits"
+                ? "OUT OF PLAYS"
+                : CATEGORY_LABEL[category ?? "no_position"]}
           </p>
           <div
             className="dialog-box"
@@ -155,8 +182,13 @@ export default function GatekeeperScreen() {
             {reason ||
               (phase === "error"
                 ? "The gatekeeper is unreachable. Check your connection and try again."
-                : "This idea will not be permitted to pass.")}
+                : phase === "no-credits"
+                  ? "You're out of plays."
+                  : "This idea will not be permitted to pass.")}
           </div>
+          {/* Passing the gate is what charges a play, so an empty balance stops
+              the player here — offer the pack picker on the spot. */}
+          {phase === "no-credits" && billingEnabled && <CreditsBadge />}
         </>
       )}
 
@@ -203,7 +235,7 @@ export default function GatekeeperScreen() {
           </button>
         )}
 
-        {phase === "error" && (
+        {(phase === "error" || phase === "no-credits") && (
           <button
             className="pixel-btn pixel-btn--yellow"
             style={{

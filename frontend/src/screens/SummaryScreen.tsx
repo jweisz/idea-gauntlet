@@ -222,7 +222,7 @@ export default function SummaryScreen() {
           className="text-yellow animate-glow"
           style={{ fontSize: "1.1rem", marginBottom: 8 }}
         >
-          IDEA MASTERED
+          <span className="toolbar-clearance">IDEA MASTERED</span>
         </h1>
         <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)" }}>
           ALL CRITICS DEFEATED — SYNTHESIS UNLOCKED

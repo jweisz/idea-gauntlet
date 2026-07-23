@@ -9,7 +9,6 @@ import {
 import { useGameStore } from "../store/gameStore";
 import { useChiptune } from "../hooks/useChiptune";
 import { useGameName } from "../store/configStore";
-import CreditsBadge from "../components/CreditsBadge";
 import { useLlmConfigured } from "../hooks/useLlmConfigured";
 import { useUIStore } from "../store/uiStore";
 import { clearAuthSession, disableGoogleAutoSelect } from "../lib/auth";
@@ -34,7 +33,6 @@ export default function HomeScreen() {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
   const [acceptingNewPlayers, setAcceptingNewPlayers] = useState(true);
-  const [creditsEnabled, setCreditsEnabled] = useState(false);
   const [googleAuth, setGoogleAuth] = useState(false);
   const [revealedId, setRevealedId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SessionListItem | null>(
@@ -56,7 +54,6 @@ export default function HomeScreen() {
       .then((c) => {
         setLeaderboardEnabled(c.leaderboard_enabled);
         setAcceptingNewPlayers(c.accepting_new_players);
-        setCreditsEnabled(c.credits_enabled);
         setGoogleAuth(c.auth === "google");
       })
       // Config already loaded at startup; ignore a transient re-fetch blip.
@@ -125,18 +122,12 @@ export default function HomeScreen() {
         padding: "40px 24px",
       }}
     >
-      {creditsEnabled && (
-        <div style={{ alignSelf: "flex-end" }}>
-          <CreditsBadge />
-        </div>
-      )}
-
       <div style={{ textAlign: "center" }}>
         <h1
           className="text-cyan animate-glow"
           style={{ fontSize: "2rem", marginBottom: 16, letterSpacing: 4 }}
         >
-          {gameName.toUpperCase()}
+          <span className="toolbar-clearance">{gameName.toUpperCase()}</span>
         </h1>
         <p
           style={{
