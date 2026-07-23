@@ -129,7 +129,10 @@ export default function ChallengerSelectScreen() {
           className="text-cyan"
           style={{ fontSize: "1rem", marginBottom: 12 }}
         >
-          CHOOSE YOUR CHALLENGERS
+          {/* toolbar-clearance: the top-right controls collapse rather than
+              overlap this title. Marked on the inline span so the measured
+              edge is the text, not the full-width heading. */}
+          <span className="toolbar-clearance">CHOOSE YOUR CHALLENGERS</span>
         </h1>
         <div
           style={{

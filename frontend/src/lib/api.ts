@@ -167,6 +167,11 @@ export interface CreditsInfo {
 // self-serve billing is off — the balance drives the coin badge.
 export const creditsApi = {
   me: () => apiJson<CreditsInfo>("/api/credits/me"),
+  // Dev-only top-up, called from the credits badge in dev builds. Implemented
+  // by credits-enabled backends (the hosted overlay / the local stub); a
+  // production build never calls it.
+  devGrant: () =>
+    apiJson<CreditsInfo>("/api/credits/dev-grant", { method: "POST" }),
 };
 
 export interface BillingInfo {

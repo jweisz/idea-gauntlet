@@ -273,15 +273,29 @@ def random_agents(count: int = 8, db: Session = Depends(get_db)):
 @router.post("/idea-check", response_model=IdeaCheckOut)
 async def idea_check(
     body: IdeaCheckRequest,
-    principal: str = Depends(get_current_principal),
+    # require_play_credit authorizes (402 on an empty balance) without debiting,
+    # so the gate is free to retry. In self-host it is a no-op.
+    principal: str = Depends(require_play_credit),
+    # accepting_new_players reflects the hosted spend gate; refuse here rather
+    # than after charging for an approved idea the player couldn't have played.
+    accepting: bool = Depends(accepting_new_players),
     db: Session = Depends(get_db),
 ):
     """Gatekeeper check: is this a defensible debate position, free of misuse?
 
-    Called by the frontend before a session is created. No credit is charged
-    and no session exists yet, so a flagged prompt-injection attempt is still
-    reported to the abuse hook (session_id=None) for hosted-overlay tracking.
+    Nothing is charged here — the play is paid for at ``POST /sessions``, when
+    the player actually starts the game. The credit check still runs (see
+    ``require_play_credit`` above) so a player with an empty balance is told
+    here, before spending an LLM call and picking challengers, rather than at
+    START. No session exists yet, so a flagged prompt-injection attempt is
+    still reported to the abuse hook (session_id=None) for hosted-overlay
+    tracking.
     """
+    if not accepting:
+        raise HTTPException(
+            status_code=503,
+            detail="Idea Gauntlet is not accepting new players at this time.",
+        )
     idea = body.idea.strip()
     if not idea:
         raise HTTPException(status_code=400, detail="Idea cannot be empty")
@@ -326,8 +340,9 @@ async def idea_check(
 @router.post("/sessions", response_model=SessionOut)
 def create_session(
     body: CreateSessionRequest,
-    # require_play_credit authorizes (and, in the hosted overlay, debits) one
-    # play and returns the principal. In self-host it is a no-op pass-through.
+    # require_play_credit authorizes one play and returns the principal; the
+    # debit itself happens in settle_play once the game exists. In self-host it
+    # is a no-op pass-through.
     principal: str = Depends(require_play_credit),
     # accepting_new_players reflects the hosted spend gate; False -> waitlist.
     accepting: bool = Depends(accepting_new_players),
@@ -575,9 +590,7 @@ async def battle_message(
 
     # Prior boss replies only (this turn's agent_reply doesn't exist yet at the
     # moment the player typed user_content, so it can't be what they copied).
-    prior_agent_messages = [
-        m.content for m in all_messages if m.role == "agent"
-    ]
+    prior_agent_messages = [m.content for m in all_messages if m.role == "agent"]
 
     # Score the exchange (also classifies the user message for misuse)
     (

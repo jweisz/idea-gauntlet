@@ -34,7 +34,9 @@ export default function LeaderboardScreen() {
     gauntlet
       .allAgents()
       .then((agents) =>
-        setEmojiByName(Object.fromEntries(agents.map((a) => [a.name, a.emoji]))),
+        setEmojiByName(
+          Object.fromEntries(agents.map((a) => [a.name, a.emoji])),
+        ),
       )
       .catch(() => {
         // Emojis are decoration — names still render without them
@@ -56,7 +58,7 @@ export default function LeaderboardScreen() {
         className="text-yellow animate-glow"
         style={{ fontSize: "1.6rem", letterSpacing: 3, textAlign: "center" }}
       >
-        🏆 LEADERBOARD
+        <span className="toolbar-clearance">🏆 LEADERBOARD</span>
       </h1>
 
       {error && (

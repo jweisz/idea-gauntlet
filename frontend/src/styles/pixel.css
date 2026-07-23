@@ -582,3 +582,63 @@ body::after {
 .audio-controls--stack .audio-controls__label {
   display: none;
 }
+
+/* A play is charged when the gatekeeper approves an idea; the credits badge
+   kicks and drops a "-1" coin so the spend is impossible to miss even though it
+   happens up in the toolbar, away from where the player is looking. The same
+   animation runs in reverse-colour for a "+N" top-up. */
+.credits-badge {
+  position: relative;
+}
+
+.credits-badge--bump {
+  animation: credit-kick 480ms steps(4, end) 1;
+}
+
+@keyframes credit-kick {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  20% {
+    transform: translate(-3px, 2px) scale(1.14);
+  }
+  50% {
+    transform: translate(3px, -1px) scale(1.06);
+  }
+  75% {
+    transform: translate(-1px, 1px) scale(1.02);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.credits-badge__delta {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 #000;
+  animation: credit-spend-float 900ms steps(8, end) forwards;
+}
+
+@keyframes credit-spend-float {
+  0% {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 34px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .credits-badge--bump {
+    animation: none;
+  }
+  .credits-badge__delta {
+    animation: credit-spend-float 900ms steps(2, end) forwards;
+  }
+}

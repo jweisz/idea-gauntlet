@@ -501,11 +501,11 @@ export default function BattleScreen() {
         />
       )}
 
-      {/* HP bars. `battle-hp-panel` marks this as the collision target the
+      {/* HP bars. `toolbar-clearance` marks this as a collision target the
           global audio controls measure against: they collapse to icons, then
           stack vertically, as this panel's right edge approaches them. */}
       <div
-        className="battle-hp-panel"
+        className="battle-hp-panel toolbar-clearance"
         style={{
           display: "flex",
           gap: 24,
@@ -567,9 +567,12 @@ export default function BattleScreen() {
         DEFENDING: <span className="text-yellow">"{session.idea}"</span>
       </div>
 
-      {/* Transcript — fills remaining space, scrolls internally */}
+      {/* Transcript — fills remaining space, scrolls internally.
+          `toolbar-clearance--column` keeps the top-right controls out of the
+          chat column's gutter — see AudioControls. */}
       <div
         ref={transcriptRef}
+        className="toolbar-clearance toolbar-clearance--column"
         style={{
           flex: 1,
           overflowY: "auto",

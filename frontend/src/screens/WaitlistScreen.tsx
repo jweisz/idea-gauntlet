@@ -48,7 +48,7 @@ export default function WaitlistScreen() {
         className="text-cyan animate-glow"
         style={{ fontSize: "1.6rem", letterSpacing: 3 }}
       >
-        {gameName.toUpperCase()}
+        <span className="toolbar-clearance">{gameName.toUpperCase()}</span>
       </h1>
 
       <p

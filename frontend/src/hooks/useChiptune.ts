@@ -189,6 +189,35 @@ export function useChiptune() {
         ),
       ),
 
+    // A play credit is spent: coin ping, then a lower "it's gone" thunk
+    creditSpend: () =>
+      when(() =>
+        sequence(
+          [
+            [988, 0.06], // B5
+            [1319, 0.08], // E6 — the arcade coin
+            [0, 0.04],
+            [392, 0.16], // G4 — dropping into the slot
+          ],
+          "square",
+          0.14,
+        ),
+      ),
+
+    // Play credits granted: bright rising coin pickup
+    creditGrant: () =>
+      when(() =>
+        sequence(
+          [
+            [784, 0.06], // G5
+            [1047, 0.06], // C6
+            [1319, 0.14], // E6
+          ],
+          "square",
+          0.13,
+        ),
+      ),
+
     // Gatekeeper rejects: soft descending minor arpeggio (E-C-A)
     gatekeeperReject: () =>
       when(() =>
