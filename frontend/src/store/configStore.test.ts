@@ -6,7 +6,13 @@ vi.mock("../lib/api", () => ({
   configApi: { get: () => getMock() },
 }));
 
-import { useConfigStore, useGameName } from "./configStore";
+import {
+  useConfigStore,
+  useGameName,
+  useBossCount,
+  useMaxBossCount,
+  useProgression,
+} from "./configStore";
 
 const SERVER_CONFIG = {
   game_name: "Custom Name",
@@ -18,7 +24,14 @@ const SERVER_CONFIG = {
   show_model_selection: true,
   leaderboard_enabled: true,
   accepting_new_players: true,
-};
+  difficulty_bosses: { easy: 3, normal: 5, difficult: 7, insane: 8 },
+  difficulty_progression: {
+    easy: "linear",
+    normal: "linear",
+    difficult: "linear",
+    insane: "free",
+  },
+} as const;
 
 beforeEach(() => {
   useConfigStore.setState({ config: null, error: false });
@@ -35,6 +48,34 @@ describe("useGameName", () => {
     useConfigStore.setState({ config: SERVER_CONFIG });
     const { result } = renderHook(() => useGameName());
     expect(result.current).toBe("Custom Name");
+  });
+});
+
+describe("gauntlet shape selectors", () => {
+  it("reads boss counts from the server rather than hardcoding them", () => {
+    useConfigStore.setState({ config: SERVER_CONFIG });
+
+    expect(renderHook(() => useBossCount("easy")).result.current).toBe(3);
+    expect(renderHook(() => useBossCount("normal")).result.current).toBe(5);
+    expect(renderHook(() => useBossCount("difficult")).result.current).toBe(7);
+    expect(renderHook(() => useBossCount("insane")).result.current).toBe(8);
+    expect(renderHook(() => useMaxBossCount()).result.current).toBe(8);
+  });
+
+  it("reports which tiers are fought in order", () => {
+    useConfigStore.setState({ config: SERVER_CONFIG });
+
+    expect(renderHook(() => useProgression("normal")).result.current).toBe(
+      "linear",
+    );
+    expect(renderHook(() => useProgression("insane")).result.current).toBe(
+      "free",
+    );
+  });
+
+  it("returns harmless values before config loads", () => {
+    expect(renderHook(() => useBossCount("normal")).result.current).toBe(0);
+    expect(renderHook(() => useMaxBossCount()).result.current).toBe(0);
   });
 });
 

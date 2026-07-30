@@ -26,28 +26,32 @@ import HomeScreen from "./screens/HomeScreen";
 import IdeaEntryScreen from "./screens/IdeaEntryScreen";
 import GatekeeperScreen from "./screens/GatekeeperScreen";
 import ChallengerSelectScreen from "./screens/ChallengerSelectScreen";
-import StageSelectScreen from "./screens/StageSelectScreen";
+import StageRouter from "./screens/StageRouter";
 import BossInterstitialScreen from "./screens/BossInterstitialScreen";
 import BattleScreen from "./screens/BattleScreen";
 import SummaryScreen from "./screens/SummaryScreen";
 import LeaderboardScreen from "./screens/LeaderboardScreen";
 import WaitlistScreen from "./screens/WaitlistScreen";
 
-// One track per boss slot — 8 slots, 8 unique tracks. This maps to the
-// boss's *position in the session's roster*, not the boss's identity: which
-// track a given boss (e.g. Bedrock) gets depends on where it landed in that
-// game's randomized order, so it won't always be the same track across
-// different games. "overworld" and "credits" are reserved for the menu
-// screens and the summary screen respectively, so they're excluded here.
+// One track per boss slot, mapped to the boss's *position in the session's
+// roster* rather than its identity: which track a given boss (e.g. Bedrock)
+// gets depends on where it landed in that game's randomized order, so it won't
+// always be the same track across games. "overworld" and "credits" are reserved
+// for the menu and summary screens, so they're excluded here.
+//
+// Order matters now that a gauntlet can be as short as three bosses: only the
+// first N slots are ever reached, so the most distinctive tracks go first, and
+// "arena" goes last because it's also the stage-select track — leading with it
+// would make boss 1 replay the music you just walked in on.
 const BATTLE_TRACKS = [
-  "arena",
+  "voltage",
   "shadow",
   "boss-rush",
-  "voltage",
   "thunder",
   "mirage",
   "starlight",
   "carnival",
+  "arena",
 ];
 
 function AudioManager() {
@@ -154,7 +158,7 @@ export default function App() {
             path="/choose-challengers"
             element={<ChallengerSelectScreen />}
           />
-          <Route path="/stage-select" element={<StageSelectScreen />} />
+          <Route path="/stage-select" element={<StageRouter />} />
           <Route path="/boss/:bossId" element={<BossInterstitialScreen />} />
           <Route path="/battle/:bossId" element={<BattleScreen />} />
           <Route path="/summary" element={<SummaryScreen />} />

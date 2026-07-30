@@ -55,6 +55,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       liveHp: {},
       pendingMessages: {},
       pendingIdea: "",
+      // Cleared too, so a second game in the same tab rolls a fresh lineup
+      // rather than silently re-offering the previous one.
+      pendingAgents: [],
     });
   },
 

@@ -95,7 +95,7 @@ export default function GoogleSignIn({
       <p
         style={{ fontSize: "0.8rem", color: "var(--nes-gray)", lineHeight: 2 }}
       >
-        DEFEND YOUR IDEA AGAINST 8 CRITICS
+        DEFEND YOUR IDEA AGAINST A GAUNTLET OF AI CRITICS
       </p>
       <p
         style={{

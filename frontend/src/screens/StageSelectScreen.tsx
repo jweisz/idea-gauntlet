@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+/**
+ * Free-choice stage select: the 3x3 grid, Mega Man style — pick any boss, in
+ * any order. Used by the insane tier and by every game created before gauntlet
+ * length was variable. The in-order layout lives in GauntletPathScreen;
+ * StageRouter picks between them.
+ */
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store/gameStore";
 import { useChiptune } from "../hooks/useChiptune";
 import { useGridCursor } from "../hooks/useGridCursor";
-import { gauntlet } from "../lib/api";
-import type { BattleBossOut } from "../lib/api";
+import { gauntletProgress } from "../lib/gauntletProgress";
+import BypassCommandPanel from "../components/BypassCommandPanel";
+import { useBypassCommand } from "../hooks/useBypassCommand";
+import type { BattleBossOut, SessionOut } from "../lib/api";
 
 const CENTER_POS = 4;
 
@@ -123,10 +130,12 @@ function BossCell({
 
 function CenterCell({
   allDefeated,
+  total,
   isCursor,
   onSelect,
 }: {
   allDefeated: boolean;
+  total: number;
   isCursor: boolean;
   onSelect: () => void;
 }) {
@@ -167,86 +176,29 @@ function CenterCell({
         <div
           style={{ fontSize: "0.7rem", color: "var(--nes-gray)", marginTop: 4 }}
         >
-          DEFEAT ALL 8
+          DEFEAT ALL {total}
         </div>
       )}
     </div>
   );
 }
 
-export default function StageSelectScreen() {
+export default function StageSelectScreen({
+  session,
+  bypassedRef,
+}: {
+  session: SessionOut;
+  bypassedRef: React.MutableRefObject<boolean>;
+}) {
   const navigate = useNavigate();
-  const { session, setSession } = useGameStore();
+  const { setSession } = useGameStore();
   const { blip, unlock } = useChiptune();
+  const bypass = useBypassCommand(session, setSession, bypassedRef);
 
-  const [cmdOpen, setCmdOpen] = useState(false);
-  const [cmdValue, setCmdValue] = useState("/");
-  const [cmdRunning, setCmdRunning] = useState(false);
-  const cmdInputRef = useRef<HTMLInputElement>(null);
-  // Prevents a slow mount-fetch from overwriting a bypass result that arrived later.
-  const bypassedRef = useRef(false);
-
-  const bosses = session?.bosses ?? [];
-  const allDefeated =
-    bosses.length > 0 && bosses.every((b) => b.status === "defeated");
-
-  // Open command panel on "/" keypress (when panel is not already open)
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (cmdOpen || cmdRunning) return;
-      if (e.key === "/" && !(e.target instanceof HTMLInputElement)) {
-        e.preventDefault();
-        setCmdValue("/");
-        setCmdOpen(true);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [cmdOpen, cmdRunning]);
-
-  // Focus the input whenever the panel opens
-  useEffect(() => {
-    if (cmdOpen) cmdInputRef.current?.focus();
-  }, [cmdOpen]);
-
-  const closeCmd = () => {
-    setCmdOpen(false);
-    setCmdValue("/");
-  };
-
-  const handleCommand = async () => {
-    const cmd = cmdValue.trim();
-    closeCmd();
-    if (cmd !== "/bypass" || !session) return;
-
-    setCmdRunning(true);
-    bypassedRef.current = true;
-    try {
-      const toBypass = bosses.filter((b) => b.status !== "defeated");
-      for (const boss of toBypass) {
-        await gauntlet.bypassBattle(session.id, boss.id);
-      }
-      // Patch locally first so allDefeated flips immediately without a round-trip.
-      setSession({
-        ...session,
-        bosses: session.bosses.map((b) => ({
-          ...b,
-          status: "defeated" as const,
-          agent_hp: 0,
-        })),
-      });
-      // Confirm with server in background.
-      gauntlet
-        .getSession(session.id)
-        .then(setSession)
-        .catch(() => {});
-    } finally {
-      setCmdRunning(false);
-    }
-  };
+  const bosses = session.bosses;
+  const { total, defeatedCount, allDefeated } = gauntletProgress(bosses);
 
   const handleGridSelect = (pos: number) => {
-    if (!session) return;
     if (pos === CENTER_POS) {
       if (allDefeated) {
         unlock();
@@ -264,30 +216,12 @@ export default function StageSelectScreen() {
     navigate(`/boss/${boss.id}`);
   };
 
-  // Hook must be called before any early returns (Rules of Hooks)
   const { cursor } = useGridCursor({
     onSelect: handleGridSelect,
     onMove: blip,
-    enabled: !!session && !cmdOpen && !cmdRunning,
+    enabled: !bypass.open && !bypass.running,
     skipPositions: allDefeated ? [] : [CENTER_POS],
   });
-
-  useEffect(() => {
-    if (!session) {
-      navigate("/", { replace: true });
-      return;
-    }
-    // Re-fetch on mount so boss statuses are fresh (avoids stale store after battles).
-    // Guard: don't overwrite a bypass result that arrived after this request started.
-    gauntlet
-      .getSession(session.id)
-      .then((s) => {
-        if (!bypassedRef.current) setSession(s);
-      })
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!session) return null;
 
   // Arrange into 3×3: positions 0-3 → bosses 0-3, pos 4 = center, pos 5-8 → bosses 4-7
   const grid: (BattleBossOut | "center" | null)[] = [
@@ -340,6 +274,7 @@ export default function StageSelectScreen() {
               <CenterCell
                 key="center"
                 allDefeated={allDefeated}
+                total={total}
                 isCursor={cursor === i}
                 onSelect={() => {
                   if (allDefeated) {
@@ -385,58 +320,10 @@ export default function StageSelectScreen() {
       </div>
 
       <p style={{ fontSize: "0.65rem", color: "var(--nes-gray)" }}>
-        {cmdRunning
-          ? "BYPASSING..."
-          : `${bosses.filter((b) => b.status === "defeated").length}/8 DEFEATED`}
+        {bypass.running ? "BYPASSING..." : `${defeatedCount}/${total} DEFEATED`}
       </p>
 
-      {/* Command panel — fixed bottom-right, opens on "/" */}
-      {cmdOpen && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 20,
-            right: 20,
-            zIndex: 1000,
-            background: "var(--nes-darkgray)",
-            border: "3px solid var(--nes-cyan)",
-            boxShadow: "4px 4px 0 var(--nes-cyan)",
-            padding: "10px 14px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            minWidth: 220,
-          }}
-        >
-          <div style={{ fontSize: "0.55rem", color: "var(--nes-cyan)" }}>
-            COMMAND
-          </div>
-          <input
-            ref={cmdInputRef}
-            className="pixel-input"
-            value={cmdValue}
-            onChange={(e) => setCmdValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.nativeEvent.stopImmediatePropagation();
-                void handleCommand();
-              }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.nativeEvent.stopImmediatePropagation();
-                closeCmd();
-              }
-            }}
-            style={{ fontSize: "0.7rem", padding: "6px 8px", width: "100%" }}
-            spellCheck={false}
-            autoComplete="off"
-          />
-          <div style={{ fontSize: "0.5rem", color: "var(--nes-gray)" }}>
-            ENTER to run · ESC to cancel
-          </div>
-        </div>
-      )}
+      <BypassCommandPanel state={bypass} />
     </div>
   );
 }

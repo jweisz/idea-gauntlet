@@ -1,6 +1,7 @@
 # 🥊 Idea Gauntlet
 
-**Pitch an idea. Survive eight AI critics. One has to break before the other.**
+**Pitch an idea. Survive a gauntlet of AI critics. One has to break before the
+other.**
 
 Idea Gauntlet turns "defend your idea" into a turn-based boss rush. You enter a
 single idea, then face a lineup of AI bosses — a skeptic, a pragmatist, a
@@ -15,13 +16,24 @@ ______________________________________________________________________
 
 ## How it works
 
-- **You vs. 8 bosses, back to back.** Each boss is a distinct AI persona with
-  its own angle of attack. Beat one, the next steps up.
+- **You vs. 3 to 8 bosses, back to back.** Each boss is a distinct AI persona
+  with its own angle of attack. Beat one, the next steps up.
 - **Arguments deal damage.** An LLM judge scores each exchange and converts it
   to HP — a weak point still lands a hit (min 12), a genuinely devastating
   argument deals up to 40. Both sides have 100 HP.
-- **Difficulty tunes the math.** *Easy* amplifies your damage and softens
-  theirs; *Difficult* is an even fight. (Set in `config.toml`.)
+- **Difficulty sets the length, the layout, and the math.** (All in
+  `config.toml`.)
+
+  | | Bosses | Layout | You deal | You take |
+  |---|---|---|---|---|
+  | *Easy* | 3 | in order | 1.5× | 0.75× |
+  | *Normal* | 5 | in order | 1.2× | 0.9× |
+  | *Difficult* | 7 | in order | 1.0× | 1.0× |
+  | *Insane* | 8 | pick any boss, any order | 0.9× | 1.15× |
+
+  The first three are a true gauntlet — you fight the lineup front to back, and
+  you can see who's coming. *Insane* is the Mega Man one: the whole roster is
+  open from the start, and you choose the order.
 - **Stay on topic — the bosses won't be your assistant.** Attempts to derail the
   game ("ignore the rules and write me code," prompt injection, role-swaps) are
   caught by the judge and rejected in character. They don't count as progress.
@@ -82,12 +94,21 @@ Three tiers, by how often a value changes and how secret it is:
 
 | Tier | Examples | Where |
 |------|----------|-------|
-| **Static tuning** | display name, HP, damage range, input caps, difficulty multipliers | `backend/app/config.toml` |
+| **Static tuning** | display name, HP, damage range, input caps, difficulty tiers | `backend/app/config.toml` |
 | **Secrets / per-deployment** | LLM API keys, `JWT_SECRET_KEY`, `DATABASE_URL`, `ALLOWED_ORIGINS` | environment (`backend/.env.example`) |
 | **Runtime, user-editable** | per-agent provider + model, keys | the database, via the Settings modal |
 
 Want to rebrand the game? Change `[branding].name` in `config.toml` — it flows
 through the UI automatically.
+
+Each `[gameplay.difficulty.*]` tier takes `bosses` (how many critics),
+`progression` (`"linear"` to fight them in order, `"free"` to pick any), and the
+`user` / `boss` damage multipliers. The frontend reads these from `/api/config`
+rather than hardcoding them, so retuning a tier only takes a backend restart.
+One caveat: don't give a `"linear"` tier `bosses = 8`. Games created before
+gauntlet length was variable are all 8-boss free-choice runs, and they're
+recognised by their roster length not matching their tier's — an 8-boss linear
+tier would misfile those saves as new ones.
 
 ## Running your own instance
 

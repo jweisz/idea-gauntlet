@@ -16,15 +16,35 @@ max_idea_chars = 600     # input cap on the idea
 max_attack_chars = 2000  # input cap on each battle message
 reply_word_limit = 90    # target length for an agent's battle reply
 
-# Difficulty multipliers applied after scoring.
-#   user = multiplier on damage the player deals to the boss
-#   boss = multiplier on damage the boss deals to the player
+# Difficulty sets the length of the gauntlet, its layout, and the damage math.
+#   bosses      = how many critics you face
+#   progression = "linear" (fight them in order) | "free" (pick any, Mega Man style)
+#   user        = multiplier on damage the player deals to the boss
+#   boss        = multiplier on damage the boss deals to the player
+#
+# NOTE: do not give a "linear" tier bosses = 8. Sessions created before gauntlet
+# length was variable are all 8-boss free-choice games, and they're recognised by
+# their roster length not matching their tier's configured length (see
+# services.gauntlet.progression_for). An 8-boss linear tier would misclassify
+# those old games as new ones and force a linear order onto bosses the player may
+# already have defeated out of order.
 [gameplay.difficulty.easy]
+bosses = 3
+progression = "linear"
 user = 1.5
 boss = 0.75
 [gameplay.difficulty.normal]
+bosses = 5
+progression = "linear"
 user = 1.2
 boss = 0.9
 [gameplay.difficulty.difficult]
+bosses = 7
+progression = "linear"
 user = 1.0
 boss = 1.0
+[gameplay.difficulty.insane]
+bosses = 8
+progression = "free"
+user = 0.9
+boss = 1.15

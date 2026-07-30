@@ -136,7 +136,7 @@ export default function HomeScreen() {
             lineHeight: 2,
           }}
         >
-          DEFEND YOUR IDEA AGAINST 8 CRITICS
+          DEFEND YOUR IDEA AGAINST A GAUNTLET OF AI CRITICS
         </p>
       </div>
 

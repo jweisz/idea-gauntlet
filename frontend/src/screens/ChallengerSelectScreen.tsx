@@ -7,12 +7,23 @@ import {
   type Difficulty,
 } from "../lib/api";
 import { useGameStore } from "../store/gameStore";
-import { useConfigStore } from "../store/configStore";
+import {
+  useConfigStore,
+  useBossCount,
+  useMaxBossCount,
+  useProgression,
+} from "../store/configStore";
 import { useChiptune } from "../hooks/useChiptune";
 import CreditsBadge from "../components/CreditsBadge";
 
 const CENTER_POS = 4;
 const MAX_REROLLS = 2;
+
+// The free-choice grid is 3 columns of a 680px box with 12px gutters, so a tile
+// is 218px. The linear lineup caps its tiles at the same size so a boss box
+// looks identical whichever layout you're in.
+const GRID_TILE_MAX = 218;
+const LINEUP_GAP = 12;
 
 const BOSS_COLORS = [
   "var(--nes-blue)",
@@ -25,8 +36,101 @@ const BOSS_COLORS = [
   "var(--nes-gray)",
 ];
 
+const DIFFICULTIES: {
+  id: Difficulty;
+  label: string;
+  color: string;
+  hint: string;
+}[] = [
+  { id: "easy", label: "EASY", color: "var(--nes-green)", hint: "hit harder" },
+  {
+    id: "normal",
+    label: "NORMAL",
+    color: "var(--nes-yellow)",
+    hint: "balanced",
+  },
+  {
+    id: "difficult",
+    label: "DIFFICULT",
+    color: "var(--nes-red)",
+    hint: "no mercy",
+  },
+  {
+    id: "insane",
+    label: "INSANE",
+    color: "var(--nes-purple)",
+    hint: "your order, their terms",
+  },
+];
+
 function gridPosToBossIndex(pos: number): number {
   return pos < CENTER_POS ? pos : pos - 1;
+}
+
+/** One challenger tile. `order` is shown only when the run is fought in order. */
+function ChallengerTile({
+  agent,
+  colorIndex,
+  order,
+  dimmed,
+  size,
+}: {
+  agent: AgentSummary;
+  colorIndex: number;
+  order?: number;
+  dimmed: boolean;
+  size?: string;
+}) {
+  const color = BOSS_COLORS[colorIndex % BOSS_COLORS.length];
+  return (
+    <div
+      style={{
+        border: `4px solid ${color}`,
+        boxShadow: `4px 4px 0 ${color}`,
+        background: "var(--nes-darkgray)",
+        width: size,
+        aspectRatio: "1",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: 12,
+        position: "relative",
+        overflow: "hidden",
+        opacity: dimmed ? 0.5 : 1,
+        transition: "transform 80ms, box-shadow 80ms, opacity 120ms",
+      }}
+    >
+      {order !== undefined && (
+        <span
+          style={{
+            position: "absolute",
+            top: 4,
+            left: 6,
+            fontSize: "0.5rem",
+            color,
+          }}
+        >
+          {order}
+        </span>
+      )}
+      <div className="sprite sprite--idle" style={{ fontSize: 36 }}>
+        {agent.emoji}
+      </div>
+      <div
+        style={{
+          fontSize: "0.65rem",
+          lineHeight: 1.6,
+          textAlign: "center",
+          width: "100%",
+          overflowWrap: "break-word",
+        }}
+      >
+        {agent.name}
+      </div>
+    </div>
+  );
 }
 
 export default function ChallengerSelectScreen() {
@@ -49,6 +153,16 @@ export default function ChallengerSelectScreen() {
   const billingEnabled =
     useConfigStore((s) => s.config?.billing_enabled) ?? false;
 
+  // The gauntlet's length and layout come from the server's config, never from
+  // constants here. We fetch the longest possible lineup once and show a prefix
+  // of it, so changing difficulty is instant and — because it's a prefix — the
+  // challengers you'd already seen stay put as the gauntlet gets longer.
+  const maxBosses = useMaxBossCount();
+  const bossCount = useBossCount(difficulty);
+  const bossCounts = useConfigStore((s) => s.config?.difficulty_bosses);
+  const isFreeChoice = useProgression(difficulty) === "free";
+  const lineup = pendingAgents.slice(0, bossCount);
+
   const rerollsLeft = MAX_REROLLS - rerollsUsed;
 
   useEffect(() => {
@@ -57,25 +171,26 @@ export default function ChallengerSelectScreen() {
       return;
     }
     // loading's initial value already accounts for pendingAgents being
-    // pre-populated (a reroll/back-navigation case), so only fetch when empty.
-    if (pendingAgents.length > 0) return;
+    // pre-populated (a reroll/back-navigation case), so only fetch when the
+    // cached pool is too short for the longest gauntlet on offer.
+    if (!maxBosses || pendingAgents.length >= maxBosses) return;
     gauntlet
-      .randomAgents(8)
+      .randomAgents(maxBosses)
       .then(setPendingAgents)
       .catch(() => setError("Failed to load agents. Is the backend running?"))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [maxBosses]);
 
   const handleStart = async () => {
-    if (pendingAgents.length !== 8 || starting || loading || rerolling) return;
+    if (lineup.length !== bossCount || starting || loading || rerolling) return;
     setError(null);
     setStarting(true);
     attack();
     try {
       const session = await gauntlet.createSession(
         pendingIdea,
-        pendingAgents.map((a) => a.id),
+        lineup.map((a) => a.id),
         difficulty,
       );
       setSession(session);
@@ -99,7 +214,7 @@ export default function ChallengerSelectScreen() {
     setRerolling(true);
     blip();
     try {
-      const fresh = await gauntlet.randomAgents(8);
+      const fresh = await gauntlet.randomAgents(maxBosses);
       setPendingAgents(fresh);
       setRerollsUsed((n) => n + 1);
     } catch (e) {
@@ -111,20 +226,34 @@ export default function ChallengerSelectScreen() {
 
   // Build 3×3 grid: positions 0-3 → bosses 0-3, pos 4 = center, pos 5-8 → bosses 4-7
   const gridItems: (AgentSummary | "center" | undefined)[] = [
-    pendingAgents[0],
-    pendingAgents[1],
-    pendingAgents[2],
-    pendingAgents[3],
+    lineup[0],
+    lineup[1],
+    lineup[2],
+    lineup[3],
     "center",
-    pendingAgents[4],
-    pendingAgents[5],
-    pendingAgents[6],
-    pendingAgents[7],
+    lineup[4],
+    lineup[5],
+    lineup[6],
+    lineup[7],
   ];
 
+  const rerollDisabled = rerollsLeft <= 0 || rerolling || starting;
+
   return (
-    <div className="screen" style={{ gap: 24 }}>
-      <div style={{ textAlign: "center" }}>
+    // Three fixed bands: header, a flexible middle that absorbs every change in
+    // lineup size, and the action row. `.screen` centres its column, which would
+    // slide the title and buttons around as the roster grows from 3 to 8 — so
+    // the height is pinned and the middle does all the giving instead.
+    <div
+      className="screen"
+      style={{
+        gap: 0,
+        height: "100vh",
+        justifyContent: "flex-start",
+        width: "100%",
+      }}
+    >
+      <div style={{ textAlign: "center", flex: "0 0 auto" }}>
         <h1
           className="text-cyan"
           style={{ fontSize: "1rem", marginBottom: 12 }}
@@ -169,6 +298,8 @@ export default function ChallengerSelectScreen() {
           alignItems: "center",
           gap: 8,
           width: "min(680px, 100%)",
+          flex: "0 0 auto",
+          marginTop: 24,
         }}
       >
         <span
@@ -180,30 +311,25 @@ export default function ChallengerSelectScreen() {
         >
           DIFFICULTY:
         </span>
-        <div style={{ display: "flex", gap: 10, width: "100%" }}>
-          {(
-            [
-              {
-                id: "easy" as Difficulty,
-                label: "EASY",
-                color: "var(--nes-green)",
-                hint: "hit harder · take less damage",
-              },
-              {
-                id: "normal" as Difficulty,
-                label: "NORMAL",
-                color: "var(--nes-yellow)",
-                hint: "fair and balanced debate",
-              },
-              {
-                id: "difficult" as Difficulty,
-                label: "DIFFICULT",
-                color: "var(--nes-red)",
-                hint: "try your best!",
-              },
-            ] as const
-          ).map(({ id, label, color, hint }) => {
+        <span
+          style={{
+            fontSize: "0.5rem",
+            color: "var(--nes-gray)",
+            alignSelf: "flex-start",
+            opacity: 0.7,
+          }}
+        >
+          {isFreeChoice
+            ? "FACE THEM IN ANY ORDER YOU LIKE"
+            : "FACE THEM ONE AFTER ANOTHER, IN ORDER"}
+        </span>
+        {/* Wraps to 2x2 on narrow viewports rather than squeezing four abreast. */}
+        <div
+          style={{ display: "flex", flexWrap: "wrap", gap: 10, width: "100%" }}
+        >
+          {DIFFICULTIES.map(({ id, label, color, hint }) => {
             const active = difficulty === id;
+            const count = bossCounts?.[id];
             return (
               <button
                 key={id}
@@ -212,7 +338,7 @@ export default function ChallengerSelectScreen() {
                   setDifficulty(id);
                 }}
                 style={{
-                  flex: 1,
+                  flex: "1 1 140px",
                   background: active ? color : "var(--nes-darkgray)",
                   border: `3px solid ${active ? color : "var(--nes-gray)"}`,
                   boxShadow: active ? `3px 3px 0 rgba(0,0,0,0.4)` : "none",
@@ -232,7 +358,7 @@ export default function ChallengerSelectScreen() {
                 <span
                   style={{ fontSize: "0.45rem", opacity: active ? 0.8 : 0.4 }}
                 >
-                  {hint}
+                  {count ? `${count} CRITICS · ${hint}` : hint}
                 </span>
               </button>
             );
@@ -240,143 +366,163 @@ export default function ChallengerSelectScreen() {
         </div>
       </div>
 
-      {loading ? (
-        <p style={{ fontSize: "0.875rem", color: "var(--nes-gray)" }}>
-          LOADING AGENTS...
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 12,
-            width: "min(680px, 100%)",
-          }}
-        >
-          {gridItems.map((item, pos) => {
-            // ── Centre tile — the reroll button, standing in for "your idea" ──
-            if (item === "center") {
-              const rerollDisabled = rerollsLeft <= 0 || rerolling || starting;
-              return (
-                <button
-                  key="center"
-                  type="button"
-                  className="pixel-btn"
-                  onClick={() => void handleReroll()}
-                  disabled={rerollDisabled}
-                  title={`Reroll all challengers · ${MAX_REROLLS} per game`}
-                  style={{
-                    aspectRatio: "1",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    borderColor: "var(--nes-white)",
-                    boxShadow: "4px 4px 0 rgba(255,255,255,0.15)",
-                    opacity: rerollsLeft <= 0 ? 0.4 : 1,
-                    cursor: rerollDisabled ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <div
-                    className={`sprite ${rerolling ? "" : "sprite--idle"}`}
-                    style={{ fontSize: 36 }}
-                  >
-                    🎲
-                  </div>
-                  <div style={{ fontSize: "0.65rem", lineHeight: 1.6 }}>
-                    {rerolling ? "REROLLING..." : "REROLL"}
-                  </div>
-                  <div
-                    style={{ fontSize: "0.5rem", color: "var(--nes-yellow)" }}
-                  >
-                    {rerollsLeft}x LEFT
-                  </div>
-                </button>
-              );
-            }
-
-            // ── Boss tile (display-only) ─────────────────────────────────
-            const agent = item as AgentSummary | undefined;
-            if (!agent) return <div key={`empty-${pos}`} />;
-
-            const bossIdx = gridPosToBossIndex(pos);
-            const color = BOSS_COLORS[bossIdx % BOSS_COLORS.length];
-
-            return (
-              // Keyed by grid position, not agent id: a reroll swaps most/all
-              // 8 agents at once, and keying by id would remount every tile
-              // that changed, killing the opacity transition mid-flight and
-              // popping the new content in instantly (the "flash"). Keying by
-              // position keeps the same DOM node across a reroll so its
-              // emoji/name just update in place and the fade stays smooth.
-              <div
-                key={pos}
-                style={{
-                  border: `4px solid ${color}`,
-                  boxShadow: `4px 4px 0 ${color}`,
-                  background: "var(--nes-darkgray)",
-                  aspectRatio: "1",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  padding: 12,
-                  position: "relative",
-                  overflow: "hidden",
-                  opacity: rerolling ? 0.5 : 1,
-                  transition: "transform 80ms, box-shadow 80ms, opacity 120ms",
-                }}
-              >
-                <div className="sprite sprite--idle" style={{ fontSize: 36 }}>
-                  {agent.emoji}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.65rem",
-                    lineHeight: 1.6,
-                    textAlign: "center",
-                    width: "100%",
-                    overflowWrap: "break-word",
-                  }}
-                >
-                  {agent.name}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {error && (
-        <p style={{ color: "var(--nes-red)", fontSize: "0.875rem" }}>{error}</p>
-      )}
-
-      {outOfCredits && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            alignItems: "center",
-          }}
-        >
-          <p style={{ color: "var(--nes-yellow)", fontSize: "0.8rem" }}>
-            {outOfCreditsMsg ?? "You're out of credits."}
+      {/* Middle band: everything that changes size with the difficulty lives
+          here, and it scrolls internally rather than pushing the header up or
+          the buttons down. */}
+      <div
+        style={{
+          flex: "1 1 auto",
+          minHeight: 0,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          overflowY: "auto",
+          padding: "20px 0",
+        }}
+      >
+        {loading ? (
+          <p style={{ fontSize: "0.875rem", color: "var(--nes-gray)" }}>
+            LOADING AGENTS...
           </p>
-          {billingEnabled && <CreditsBadge openOnMount />}
-        </div>
-      )}
+        ) : isFreeChoice ? (
+          // ── Free choice: the 3x3 grid, foreshadowing the stage select it leads
+          // to. The centre tile is the reroll, standing in for "your idea". ──
+          <div
+            data-testid="challenger-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 12,
+              width: "min(680px, 100%)",
+            }}
+          >
+            {gridItems.map((item, pos) => {
+              if (item === "center") {
+                return (
+                  <button
+                    key="center"
+                    type="button"
+                    className="pixel-btn"
+                    onClick={() => void handleReroll()}
+                    disabled={rerollDisabled}
+                    title={`Reroll all challengers · ${MAX_REROLLS} per game`}
+                    style={{
+                      aspectRatio: "1",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      borderColor: "var(--nes-white)",
+                      boxShadow: "4px 4px 0 rgba(255,255,255,0.15)",
+                      opacity: rerollsLeft <= 0 ? 0.4 : 1,
+                      cursor: rerollDisabled ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <div
+                      className={`sprite ${rerolling ? "" : "sprite--idle"}`}
+                      style={{ fontSize: 36 }}
+                    >
+                      🎲
+                    </div>
+                    <div style={{ fontSize: "0.65rem", lineHeight: 1.6 }}>
+                      {rerolling ? "REROLLING..." : "REROLL"}
+                    </div>
+                    <div
+                      style={{ fontSize: "0.5rem", color: "var(--nes-yellow)" }}
+                    >
+                      {rerollsLeft}x LEFT
+                    </div>
+                  </button>
+                );
+              }
+
+              const agent = item as AgentSummary | undefined;
+              if (!agent) return <div key={`empty-${pos}`} />;
+
+              return (
+                // Keyed by grid position, not agent id: a reroll swaps most/all
+                // agents at once, and keying by id would remount every tile
+                // that changed, killing the opacity transition mid-flight and
+                // popping the new content in instantly (the "flash"). Keying by
+                // position keeps the same DOM node across a reroll so its
+                // emoji/name just update in place and the fade stays smooth.
+                <ChallengerTile
+                  key={pos}
+                  agent={agent}
+                  colorIndex={gridPosToBossIndex(pos)}
+                  dimmed={rerolling}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          // ── Linear: an ordered lineup across the full width. The numbers are
+          // the order you'll fight them in, so unlike the grid they carry real
+          // meaning. Tiles are sized to divide the row evenly — capped at the
+          // grid's tile size — so 3 and 7 bosses both land on one line instead of
+          // leaving an orphan on a second row. ──
+          <div
+            data-testid="challenger-lineup"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: LINEUP_GAP,
+              width: "min(1500px, 100%)",
+            }}
+          >
+            {lineup.map((agent, i) => (
+              <ChallengerTile
+                key={i}
+                agent={agent}
+                colorIndex={i}
+                order={i + 1}
+                dimmed={rerolling}
+                size={`clamp(90px, calc((100% - ${
+                  (bossCount - 1) * LINEUP_GAP
+                }px) / ${bossCount}), ${GRID_TILE_MAX}px)`}
+              />
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <p style={{ color: "var(--nes-red)", fontSize: "0.875rem" }}>
+            {error}
+          </p>
+        )}
+
+        {outOfCredits && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            <p style={{ color: "var(--nes-yellow)", fontSize: "0.8rem" }}>
+              {outOfCreditsMsg ?? "You're out of credits."}
+            </p>
+            {billingEnabled && <CreditsBadge openOnMount />}
+          </div>
+        )}
+      </div>
 
       {!loading && (
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            width: "min(680px, 100%)",
+            width: "min(1000px, 100%)",
+            flex: "0 0 auto",
           }}
         >
           <button
@@ -393,6 +539,34 @@ export default function ChallengerSelectScreen() {
           >
             <span className="pixel-arrow">◀</span> BACK
           </button>
+          {/* The grid layout keeps its reroll on the centre tile; the lineup
+              has no centre, so it lives here instead. */}
+          {!isFreeChoice && (
+            <button
+              className="pixel-btn"
+              onClick={() => void handleReroll()}
+              disabled={rerollDisabled}
+              title={`Reroll all challengers · ${MAX_REROLLS} per game`}
+              style={{
+                fontSize: "0.8rem",
+                padding: "12px 20px",
+                whiteSpace: "nowrap",
+                opacity: rerollsLeft <= 0 ? 0.4 : 1,
+                cursor: rerollDisabled ? "not-allowed" : "pointer",
+              }}
+            >
+              🎲 {rerolling ? "REROLLING..." : "REROLL"}
+              <span
+                style={{
+                  fontSize: "0.5rem",
+                  color: "var(--nes-yellow)",
+                  marginLeft: 8,
+                }}
+              >
+                {rerollsLeft}x LEFT
+              </span>
+            </button>
+          )}
           <button
             className="pixel-btn pixel-btn--green"
             onClick={() => void handleStart()}

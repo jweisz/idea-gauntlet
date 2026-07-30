@@ -2,7 +2,7 @@
 Idea Gauntlet API endpoints.
 
 Routes:
-  GET  /api/gauntlet/agents/random              - 8 randomly sampled agents
+  GET  /api/gauntlet/agents/random              - randomly sampled agents
   POST /api/gauntlet/sessions                   - Start a new game session
   GET  /api/gauntlet/sessions/{id}              - Fetch session state
   POST /api/gauntlet/sessions/{id}/battles/{boss_id}/message  - Battle turn
@@ -14,7 +14,7 @@ import logging
 import random
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload, selectinload
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List, Optional
 from datetime import datetime
 
@@ -45,6 +45,9 @@ from ..services.gauntlet import (
     generate_defense_summary,
     compute_session_stats,
     apply_difficulty,
+    progression_for,
+    DIFFICULTY_BOSSES,
+    MAX_BOSSES,
     MAX_HP,
     MAX_IDEA_CHARS,
     MAX_ATTACK_CHARS,
@@ -80,6 +83,26 @@ async def _get_agent_reply_or_502(*, agent, idea, battle_messages):
             "model configured for this critic). Check your API key / model "
             "settings and try again.",
         )
+
+
+def _require_boss_unlocked(session: GauntletSession, boss: BattleBoss) -> None:
+    """In a linear gauntlet, refuse a boss whose predecessors are still standing.
+
+    The stage screen already renders later bosses as locked; this is what makes
+    the rule real against a hand-typed /battle/<id> URL. Free-choice sessions —
+    insane, and every game created before gauntlet length was variable — are
+    unaffected, so this can never lock anyone out of a game they could play
+    before.
+    """
+    if progression_for(session.difficulty, len(session.bosses)) != "linear":
+        return
+    for other in session.bosses:  # ordered by BattleBoss.id == play order
+        if other.id == boss.id:
+            return
+        if other.status != "defeated":
+            raise HTTPException(
+                status_code=409, detail="Defeat the earlier bosses first."
+            )
 
 
 async def _attach_usage_context(
@@ -164,6 +187,17 @@ class SessionOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def progression(self) -> str:
+        """ "linear" (fight in order) | "free" — see services.gauntlet.progression_for.
+
+        Derived from the roster length, so every producer of this model must
+        populate ``bosses``; one that returned a bare session would report
+        "free" regardless of difficulty.
+        """
+        return progression_for(self.difficulty, len(self.bosses))
+
 
 class SessionListItem(BaseModel):
     """Lightweight session summary for the 'Your Games' list (no battle messages)."""
@@ -216,8 +250,8 @@ def _entry_to_out(e: LeaderboardEntry) -> "LeaderboardEntryOut":
 
 class CreateSessionRequest(BaseModel):
     idea: str
-    agent_ids: List[int]  # exactly 8
-    difficulty: str = "normal"  # "easy" | "normal" | "difficult"
+    agent_ids: List[int]  # length is set by difficulty (see DIFFICULTY_BOSSES)
+    difficulty: str = "normal"  # "easy" | "normal" | "difficult" | "insane"
 
 
 class SendMessageRequest(BaseModel):
@@ -261,7 +295,7 @@ class BattleOpeningOut(BaseModel):
 
 
 @router.get("/agents/random", response_model=List[AgentSummary])
-def random_agents(count: int = 8, db: Session = Depends(get_db)):
+def random_agents(count: int = MAX_BOSSES, db: Session = Depends(get_db)):
     """Return up to `count` randomly sampled agents from the global pool."""
     all_agents = db.query(Agent).all()
     if not all_agents:
@@ -360,18 +394,29 @@ def create_session(
             status_code=400,
             detail=f"Idea is too long (max {MAX_IDEA_CHARS} characters)",
         )
-    if len(body.agent_ids) != 8:
-        raise HTTPException(status_code=400, detail="Exactly 8 agent IDs required")
+    # Resolve difficulty FIRST — it determines how many agents are required. An
+    # unknown value is rejected rather than coerced: coercing would report a
+    # confusing count mismatch ("7 IDs sent, normal needs 5") for what is really
+    # a bad difficulty.
+    if body.difficulty not in DIFFICULTY_BOSSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"difficulty must be one of {sorted(DIFFICULTY_BOSSES)}",
+        )
+    difficulty = body.difficulty
+    expected = DIFFICULTY_BOSSES[difficulty]
+    if len(body.agent_ids) != expected:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Exactly {expected} agent IDs required for {difficulty} difficulty",
+        )
+    if len(set(body.agent_ids)) != len(body.agent_ids):
+        raise HTTPException(status_code=400, detail="Duplicate agent IDs")
 
     # Verify all agents exist
     for aid in body.agent_ids:
         if not db.query(Agent).filter(Agent.id == aid).first():
             raise HTTPException(status_code=404, detail=f"Agent {aid} not found")
-
-    valid_difficulties = {"easy", "normal", "difficult"}
-    difficulty = (
-        body.difficulty if body.difficulty in valid_difficulties else "difficult"
-    )
 
     user_id = principal
     session = GauntletSession(
@@ -495,6 +540,7 @@ async def battle_opening(
     )
     if not boss:
         raise HTTPException(status_code=404, detail="Battle not found")
+    _require_boss_unlocked(session, boss)
 
     # Idempotent: return existing opening if already generated
     existing = next((m for m in boss.messages if m.role == "agent"), None)
@@ -550,6 +596,7 @@ async def battle_message(
         raise HTTPException(status_code=404, detail="Battle not found")
     if boss.status == "defeated":
         raise HTTPException(status_code=400, detail="This boss is already defeated")
+    _require_boss_unlocked(session, boss)
 
     # Mark battle as active on first message
     if boss.status == "pending":
