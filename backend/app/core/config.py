@@ -60,10 +60,13 @@ _DEFAULT_GAMEPLAY: dict[str, Any] = {
     "max_idea_chars": 600,
     "max_attack_chars": 2000,
     "reply_word_limit": 90,
+    # Keep in sync with [gameplay.difficulty.*] in config.toml. See
+    # services.gauntlet.progression_for for what "progression" means.
     "difficulty": {
-        "easy": {"user": 1.5, "boss": 0.75},
-        "normal": {"user": 1.2, "boss": 0.9},
-        "difficult": {"user": 1.0, "boss": 1.0},
+        "easy": {"bosses": 3, "progression": "linear", "user": 1.5, "boss": 0.75},
+        "normal": {"bosses": 5, "progression": "linear", "user": 1.2, "boss": 0.9},
+        "difficult": {"bosses": 7, "progression": "linear", "user": 1.0, "boss": 1.0},
+        "insane": {"bosses": 8, "progression": "free", "user": 0.9, "boss": 1.15},
     },
 }
 
@@ -92,10 +95,16 @@ def gameplay() -> dict:
     """Gameplay tuning (config.toml [gameplay]), merged over safe defaults."""
     cfg = _config().get("gameplay", {})
     merged = {**_DEFAULT_GAMEPLAY, **cfg}
-    # Ensure all difficulty tiers exist even if the file overrides only some.
+    # Ensure all difficulty tiers exist even if the file overrides only some, and
+    # merge *within* each tier so a partial override (e.g. just `bosses`) keeps
+    # the rest of that tier's defaults rather than dropping them.
+    cfg_difficulty = cfg.get("difficulty", {})
     merged["difficulty"] = {
-        **_DEFAULT_GAMEPLAY["difficulty"],
-        **cfg.get("difficulty", {}),
+        name: {
+            **_DEFAULT_GAMEPLAY["difficulty"].get(name, {}),
+            **cfg_difficulty.get(name, {}),
+        }
+        for name in {*_DEFAULT_GAMEPLAY["difficulty"], *cfg_difficulty}
     }
     return merged
 

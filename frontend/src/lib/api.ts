@@ -104,6 +104,11 @@ export const providersApi = {
   list: () => apiJson<ProviderInfo[]>("/api/providers/models"),
 };
 
+export type Difficulty = "easy" | "normal" | "difficult" | "insane";
+
+/** How a gauntlet is played: in order, or pick-any-boss Mega Man style. */
+export type Progression = "linear" | "free";
+
 export interface AppConfig {
   game_name: string;
   auth: string;
@@ -114,6 +119,11 @@ export interface AppConfig {
   show_model_selection: boolean;
   leaderboard_enabled: boolean;
   accepting_new_players: boolean;
+  // The gauntlet's shape per difficulty, from the server's config.toml. The
+  // client never hardcodes these — AuthGate blocks rendering until config
+  // loads, so there is always a real value to read.
+  difficulty_bosses: Record<Difficulty, number>;
+  difficulty_progression: Record<Difficulty, Progression>;
 }
 
 export const configApi = {
@@ -219,8 +229,6 @@ export interface BattleBossOut {
   messages: BattleMessageOut[];
 }
 
-export type Difficulty = "easy" | "normal" | "difficult";
-
 export interface SessionOut {
   id: number;
   idea: string;
@@ -230,6 +238,10 @@ export interface SessionOut {
   summary: string | null;
   created_at: string;
   bosses: BattleBossOut[];
+  // Server-derived, not stored: games created before gauntlet length was
+  // variable are 8-boss free-choice runs whatever their difficulty says, and
+  // keep playing that way. Never re-derive this on the client.
+  progression: Progression;
 }
 
 export interface SessionListItem {
@@ -307,7 +319,7 @@ export const gauntlet = {
       body: JSON.stringify({ idea }),
     }),
 
-  randomAgents: (count = 8) =>
+  randomAgents: (count: number) =>
     apiJson<AgentSummary[]>(`/api/gauntlet/agents/random?count=${count}`),
 
   allAgents: () => apiJson<AgentSummary[]>("/api/agents/"),

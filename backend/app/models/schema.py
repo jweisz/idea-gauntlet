@@ -67,25 +67,38 @@ class Agent(Base):
 
 
 class GauntletSession(Base):
-    """A single 'idea gauntlet' run: the user defends one idea against 8 agents."""
+    """A single 'idea gauntlet' run: the user defends one idea against a lineup of agents.
+
+    How many agents, and whether they're fought in order, is set by the
+    difficulty at creation time — see services.gauntlet.DIFFICULTY_BOSSES and
+    progression_for.
+    """
 
     __tablename__ = "gauntlet_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[str] = mapped_column(String, index=True)
     idea: Mapped[str] = mapped_column(Text)
-    agent_ids: Mapped[str] = mapped_column(Text)  # JSON list of 8 agent IDs
+    # JSON list of agent IDs, in play order
+    agent_ids: Mapped[str] = mapped_column(Text)
     # "active" | "complete"
     status: Mapped[str] = mapped_column(String, default="active")
-    # "easy" | "normal" | "difficult"
+    # "easy" | "normal" | "difficult" | "insane"
     difficulty: Mapped[str] = mapped_column(String, default="normal")
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )
 
+    # Ordered by insertion (create_session adds them in agent_ids order), which
+    # is the order they're fought in. Explicit because row order is otherwise
+    # unspecified — notably under Postgres with selectinload — and linear
+    # progression depends on "boss 1" meaning the same thing on every request.
     bosses: Mapped[list["BattleBoss"]] = relationship(
-        "BattleBoss", back_populates="session", cascade="all, delete-orphan"
+        "BattleBoss",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="BattleBoss.id",
     )
 
 

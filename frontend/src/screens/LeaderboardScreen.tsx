@@ -12,6 +12,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
   easy: "var(--nes-green)",
   normal: "var(--nes-yellow)",
   difficult: "var(--nes-red)",
+  insane: "var(--nes-purple)",
 };
 
 export default function LeaderboardScreen() {

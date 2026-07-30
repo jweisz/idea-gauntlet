@@ -52,14 +52,14 @@ def fake_gatekeeper(monkeypatch, *, passed: bool):
     monkeypatch.setattr(gauntlet_api, "check_idea", check_idea)
 
 
-def seed_agents(db_session) -> list[int]:
+def seed_agents(db_session, count: int = 8) -> list[int]:
     agents = [
         Agent(
             name=f"Critic {i}",
             role_description="critic",
             system_prompt="be critical",
         )
-        for i in range(8)
+        for i in range(count)
     ]
     db_session.add_all(agents)
     db_session.commit()
@@ -70,7 +70,7 @@ def test_the_gatekeeper_is_free_and_starting_the_game_charges(
     client, db_session, monkeypatch, charges
 ):
     fake_gatekeeper(monkeypatch, passed=True)
-    agent_ids = seed_agents(db_session)
+    agent_ids = seed_agents(db_session, count=5)
 
     r = client.post("/api/gauntlet/idea-check", json={"idea": "Candy is bad"})
     assert r.status_code == 200
@@ -79,7 +79,11 @@ def test_the_gatekeeper_is_free_and_starting_the_game_charges(
 
     r = client.post(
         "/api/gauntlet/sessions",
-        json={"idea": "Candy is bad", "agent_ids": agent_ids},
+        json={
+            "idea": "Candy is bad",
+            "agent_ids": agent_ids,
+            "difficulty": "normal",  # 5 bosses
+        },
     )
     assert r.status_code == 200
     assert len(charges) == 1  # ...hitting START does
@@ -110,11 +114,15 @@ def test_rejected_idea_is_free(client, monkeypatch, charges):
 
 
 def test_a_malformed_game_is_not_charged(client, db_session, charges):
-    seed_agents(db_session)
+    agent_ids = seed_agents(db_session)
 
     r = client.post(
         "/api/gauntlet/sessions",
-        json={"idea": "Candy is bad", "agent_ids": [1, 2, 3]},  # needs 8
+        json={
+            "idea": "Candy is bad",
+            "agent_ids": agent_ids[:4],
+            "difficulty": "easy",  # easy is a 3-boss gauntlet
+        },
     )
     assert r.status_code == 400
     assert charges == []
@@ -142,11 +150,15 @@ def test_gatekeeper_refuses_before_spending_when_balance_is_empty(
 def test_starting_a_game_with_an_empty_balance_is_refused(
     client, db_session, charges, broke
 ):
-    agent_ids = seed_agents(db_session)
+    agent_ids = seed_agents(db_session, count=5)
 
     r = client.post(
         "/api/gauntlet/sessions",
-        json={"idea": "Candy is bad", "agent_ids": agent_ids},
+        json={
+            "idea": "Candy is bad",
+            "agent_ids": agent_ids,
+            "difficulty": "normal",
+        },
     )
     assert r.status_code == 402
     assert charges == []

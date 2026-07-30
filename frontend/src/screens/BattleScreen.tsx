@@ -107,6 +107,8 @@ export default function BattleScreen() {
   const { attack, hurt, victory, defeat } = useChiptune();
 
   const boss = session?.bosses.find((b) => b.id === Number(bossId));
+  // Names the screen you came from, which differs by layout.
+  const isLinear = session?.progression === "linear";
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [userHp, setUserHp] = useState(boss?.user_hp ?? MAX_HP);
@@ -862,7 +864,7 @@ export default function BattleScreen() {
             }}
           >
             {outcome === "agent"
-              ? "Return to stage select to retry this boss from the start."
+              ? `Go back to ${isLinear ? "the gauntlet" : "stage select"} to retry this boss from the start.`
               : ""}
           </p>
           <button
@@ -870,7 +872,7 @@ export default function BattleScreen() {
             onClick={() => navigate("/stage-select")}
             style={{ fontSize: "0.75rem" }}
           >
-            STAGE SELECT
+            {isLinear ? "◀ THE GAUNTLET" : "STAGE SELECT"}
           </button>
         </div>
       )}

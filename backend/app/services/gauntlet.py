@@ -48,17 +48,49 @@ REPLY_WORD_LIMIT: int = _GAMEPLAY["reply_word_limit"]
 COPY_PASTE_MIN_CHARS = 40
 COPY_PASTE_SIMILARITY_THRESHOLD = 0.85
 
-# Difficulty multipliers applied after scoring.
-# "user" = multiplier on damage the player deals to the boss.
-# "boss" = multiplier on damage the boss deals to the player.
-DIFFICULTY_MULTIPLIERS: dict[str, dict[str, float]] = _GAMEPLAY["difficulty"]
+# Difficulty tiers, from config.toml ([gameplay.difficulty.*]). Each tier carries
+# "bosses" (gauntlet length), "progression" ("linear" | "free"), and the "user" /
+# "boss" damage multipliers applied after scoring.
+DIFFICULTY_TIERS: dict[str, dict[str, Any]] = _GAMEPLAY["difficulty"]
+
+DEFAULT_DIFFICULTY = "normal"
+
+# Gauntlet length per difficulty. Read ONLY when a session is created —
+# everything downstream counts the session's own bosses, so games created under a
+# different config (or before length was variable) stay playable.
+DIFFICULTY_BOSSES: dict[str, int] = {
+    name: int(tier["bosses"]) for name, tier in DIFFICULTY_TIERS.items()
+}
+# Longest possible gauntlet — how many challengers to offer up front.
+MAX_BOSSES: int = max(DIFFICULTY_BOSSES.values())
+
+# Layout each tier is played in, for the client's stage-select screen.
+DIFFICULTY_PROGRESSION: dict[str, str] = {
+    name: str(tier["progression"]) for name, tier in DIFFICULTY_TIERS.items()
+}
 
 
 def apply_difficulty(
     user_damage: int, agent_damage: int, difficulty: str
 ) -> tuple[int, int]:
-    mults = DIFFICULTY_MULTIPLIERS.get(difficulty, DIFFICULTY_MULTIPLIERS["difficult"])
+    mults = DIFFICULTY_TIERS.get(difficulty, DIFFICULTY_TIERS[DEFAULT_DIFFICULTY])
     return round(user_damage * mults["user"]), round(agent_damage * mults["boss"])
+
+
+def progression_for(difficulty: str, boss_count: int) -> str:
+    """How a session is played: "linear" (in order) or "free" (pick any boss).
+
+    Sessions created before gauntlet length was variable are all 8-boss
+    free-choice games, whatever their difficulty. They're recognised here by
+    their roster length not matching their tier's configured length — rather than
+    by a stored column, which would have meant a schema migration against a live
+    production database. Keeping them on the grid they were built for also avoids
+    retro-fitting a linear order onto bosses already defeated out of order.
+    """
+    tier = DIFFICULTY_TIERS.get(difficulty)
+    if tier is None or boss_count != tier["bosses"]:
+        return "free"
+    return str(tier["progression"])
 
 
 @dataclass
