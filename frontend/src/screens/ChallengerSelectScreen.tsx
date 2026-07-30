@@ -59,7 +59,9 @@ const DIFFICULTIES: {
     id: "insane",
     label: "INSANE",
     color: "var(--nes-purple)",
-    hint: "your order, their terms",
+    // Kept to one line like the others. Now that the progression tagline is
+    // gone, this is the only hint that you pick the order on this tier.
+    hint: "any order",
   },
 ];
 
@@ -159,7 +161,6 @@ export default function ChallengerSelectScreen() {
   // challengers you'd already seen stay put as the gauntlet gets longer.
   const maxBosses = useMaxBossCount();
   const bossCount = useBossCount(difficulty);
-  const bossCounts = useConfigStore((s) => s.config?.difficulty_bosses);
   const isFreeChoice = useProgression(difficulty) === "free";
   const lineup = pendingAgents.slice(0, bossCount);
 
@@ -309,19 +310,7 @@ export default function ChallengerSelectScreen() {
             alignSelf: "flex-start",
           }}
         >
-          DIFFICULTY:
-        </span>
-        <span
-          style={{
-            fontSize: "0.5rem",
-            color: "var(--nes-gray)",
-            alignSelf: "flex-start",
-            opacity: 0.7,
-          }}
-        >
-          {isFreeChoice
-            ? "FACE THEM IN ANY ORDER YOU LIKE"
-            : "FACE THEM ONE AFTER ANOTHER, IN ORDER"}
+          DIFFICULTY
         </span>
         {/* Wraps to 2x2 on narrow viewports rather than squeezing four abreast. */}
         <div
@@ -329,7 +318,6 @@ export default function ChallengerSelectScreen() {
         >
           {DIFFICULTIES.map(({ id, label, color, hint }) => {
             const active = difficulty === id;
-            const count = bossCounts?.[id];
             return (
               <button
                 key={id}
@@ -358,7 +346,7 @@ export default function ChallengerSelectScreen() {
                 <span
                   style={{ fontSize: "0.45rem", opacity: active ? 0.8 : 0.4 }}
                 >
-                  {count ? `${count} CRITICS · ${hint}` : hint}
+                  {hint}
                 </span>
               </button>
             );
