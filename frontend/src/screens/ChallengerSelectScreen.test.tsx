@@ -107,6 +107,29 @@ describe("ChallengerSelectScreen", () => {
     expect(screen.queryByTestId("challenger-lineup")).toBeNull();
   });
 
+  it("keeps one reroll button in the action row on every tier", async () => {
+    // It used to move to the grid's centre tile on free choice, so switching
+    // difficulty read as the button teleporting.
+    renderScreen();
+    await waitFor(() => expect(tileNames().length).toBe(5));
+
+    for (const tier of ["EASY", "DIFFICULT", "INSANE", "NORMAL"]) {
+      fireEvent.click(screen.getByText(tier));
+      expect(screen.getAllByText(/REROLL/).length).toBe(1);
+    }
+  });
+
+  it("numbers the lineup only when the run is fought in order", async () => {
+    renderScreen();
+    await waitFor(() => expect(tileNames().length).toBe(5));
+
+    expect(screen.getByText("1")).toBeTruthy(); // normal: order matters
+
+    fireEvent.click(screen.getByText("INSANE"));
+
+    expect(screen.queryByText("1")).toBeNull(); // free choice: it doesn't
+  });
+
   it("starts the game with exactly the challengers on screen", async () => {
     const createSession = vi
       .spyOn(gauntlet, "createSession")

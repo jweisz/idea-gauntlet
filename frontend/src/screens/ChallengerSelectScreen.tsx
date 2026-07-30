@@ -16,14 +16,12 @@ import {
 import { useChiptune } from "../hooks/useChiptune";
 import CreditsBadge from "../components/CreditsBadge";
 
-const CENTER_POS = 4;
 const MAX_REROLLS = 2;
 
-// The free-choice grid is 3 columns of a 680px box with 12px gutters, so a tile
-// is 218px. The linear lineup caps its tiles at the same size so a boss box
-// looks identical whichever layout you're in.
-const GRID_TILE_MAX = 218;
-const LINEUP_GAP = 12;
+const TILE_MAX = 218;
+const TILE_GAP = 12;
+// Free choice is 8 challengers, which fills 4x2 exactly — no odd cell to fill.
+const FREE_CHOICE_COLUMNS = 4;
 
 const BOSS_COLORS = [
   "var(--nes-blue)",
@@ -65,23 +63,17 @@ const DIFFICULTIES: {
   },
 ];
 
-function gridPosToBossIndex(pos: number): number {
-  return pos < CENTER_POS ? pos : pos - 1;
-}
-
 /** One challenger tile. `order` is shown only when the run is fought in order. */
 function ChallengerTile({
   agent,
   colorIndex,
   order,
   dimmed,
-  size,
 }: {
   agent: AgentSummary;
   colorIndex: number;
   order?: number;
   dimmed: boolean;
-  size?: string;
 }) {
   const color = BOSS_COLORS[colorIndex % BOSS_COLORS.length];
   return (
@@ -90,7 +82,8 @@ function ChallengerTile({
         border: `4px solid ${color}`,
         boxShadow: `4px 4px 0 ${color}`,
         background: "var(--nes-darkgray)",
-        width: size,
+        // The grid track sets the width; stay square inside it.
+        width: "100%",
         aspectRatio: "1",
         display: "flex",
         flexDirection: "column",
@@ -224,19 +217,6 @@ export default function ChallengerSelectScreen() {
       setRerolling(false);
     }
   };
-
-  // Build 3×3 grid: positions 0-3 → bosses 0-3, pos 4 = center, pos 5-8 → bosses 4-7
-  const gridItems: (AgentSummary | "center" | undefined)[] = [
-    lineup[0],
-    lineup[1],
-    lineup[2],
-    lineup[3],
-    "center",
-    lineup[4],
-    lineup[5],
-    lineup[6],
-    lineup[7],
-  ];
 
   const rerollDisabled = rerollsLeft <= 0 || rerolling || starting;
 
@@ -375,104 +355,39 @@ export default function ChallengerSelectScreen() {
           <p style={{ fontSize: "0.875rem", color: "var(--nes-gray)" }}>
             LOADING AGENTS...
           </p>
-        ) : isFreeChoice ? (
-          // ── Free choice: the 3x3 grid, foreshadowing the stage select it leads
-          // to. The centre tile is the reroll, standing in for "your idea". ──
+        ) : (
+          // One layout for every tier, differing only in column count and
+          // whether the tiles are numbered. Free choice takes 4 columns so its
+          // 8 challengers fill two complete rows with no leftover cell; the
+          // in-order tiers put their whole lineup on one row, since the numbers
+          // read as a sequence. Tracks cap at the tile size and shrink below it
+          // on narrow viewports.
           <div
-            data-testid="challenger-grid"
+            data-testid={isFreeChoice ? "challenger-grid" : "challenger-lineup"}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 12,
-              width: "min(680px, 100%)",
-            }}
-          >
-            {gridItems.map((item, pos) => {
-              if (item === "center") {
-                return (
-                  <button
-                    key="center"
-                    type="button"
-                    className="pixel-btn"
-                    onClick={() => void handleReroll()}
-                    disabled={rerollDisabled}
-                    title={`Reroll all challengers · ${MAX_REROLLS} per game`}
-                    style={{
-                      aspectRatio: "1",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      borderColor: "var(--nes-white)",
-                      boxShadow: "4px 4px 0 rgba(255,255,255,0.15)",
-                      opacity: rerollsLeft <= 0 ? 0.4 : 1,
-                      cursor: rerollDisabled ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <div
-                      className={`sprite ${rerolling ? "" : "sprite--idle"}`}
-                      style={{ fontSize: 36 }}
-                    >
-                      🎲
-                    </div>
-                    <div style={{ fontSize: "0.65rem", lineHeight: 1.6 }}>
-                      {rerolling ? "REROLLING..." : "REROLL"}
-                    </div>
-                    <div
-                      style={{ fontSize: "0.5rem", color: "var(--nes-yellow)" }}
-                    >
-                      {rerollsLeft}x LEFT
-                    </div>
-                  </button>
-                );
-              }
-
-              const agent = item as AgentSummary | undefined;
-              if (!agent) return <div key={`empty-${pos}`} />;
-
-              return (
-                // Keyed by grid position, not agent id: a reroll swaps most/all
-                // agents at once, and keying by id would remount every tile
-                // that changed, killing the opacity transition mid-flight and
-                // popping the new content in instantly (the "flash"). Keying by
-                // position keeps the same DOM node across a reroll so its
-                // emoji/name just update in place and the fade stays smooth.
-                <ChallengerTile
-                  key={pos}
-                  agent={agent}
-                  colorIndex={gridPosToBossIndex(pos)}
-                  dimmed={rerolling}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          // ── Linear: an ordered lineup across the full width. The numbers are
-          // the order you'll fight them in, so unlike the grid they carry real
-          // meaning. Tiles are sized to divide the row evenly — capped at the
-          // grid's tile size — so 3 and 7 bosses both land on one line instead of
-          // leaving an orphan on a second row. ──
-          <div
-            data-testid="challenger-lineup"
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
+              gridTemplateColumns: `repeat(${
+                isFreeChoice ? FREE_CHOICE_COLUMNS : bossCount
+              }, minmax(0, ${TILE_MAX}px))`,
               justifyContent: "center",
-              gap: LINEUP_GAP,
+              gap: TILE_GAP,
               width: "min(1500px, 100%)",
             }}
           >
             {lineup.map((agent, i) => (
+              // Keyed by position, not agent id: a reroll swaps most/all agents
+              // at once, and keying by id would remount every tile that changed,
+              // killing the opacity transition mid-flight and popping the new
+              // content in instantly (the "flash"). Keying by position keeps the
+              // same DOM node across a reroll so its emoji/name just update in
+              // place and the fade stays smooth.
               <ChallengerTile
                 key={i}
                 agent={agent}
                 colorIndex={i}
-                order={i + 1}
+                // Only meaningful when the run is fought in order.
+                order={isFreeChoice ? undefined : i + 1}
                 dimmed={rerolling}
-                size={`clamp(90px, calc((100% - ${
-                  (bossCount - 1) * LINEUP_GAP
-                }px) / ${bossCount}), ${GRID_TILE_MAX}px)`}
               />
             ))}
           </div>
@@ -527,34 +442,33 @@ export default function ChallengerSelectScreen() {
           >
             <span className="pixel-arrow">◀</span> BACK
           </button>
-          {/* The grid layout keeps its reroll on the centre tile; the lineup
-              has no centre, so it lives here instead. */}
-          {!isFreeChoice && (
-            <button
-              className="pixel-btn"
-              onClick={() => void handleReroll()}
-              disabled={rerollDisabled}
-              title={`Reroll all challengers · ${MAX_REROLLS} per game`}
+          {/* Same place on every tier — it used to jump to the grid's centre
+              tile on free choice, which read as the button teleporting when you
+              switched difficulty. */}
+          <button
+            className="pixel-btn"
+            onClick={() => void handleReroll()}
+            disabled={rerollDisabled}
+            title={`Reroll all challengers · ${MAX_REROLLS} per game`}
+            style={{
+              fontSize: "0.8rem",
+              padding: "12px 20px",
+              whiteSpace: "nowrap",
+              opacity: rerollsLeft <= 0 ? 0.4 : 1,
+              cursor: rerollDisabled ? "not-allowed" : "pointer",
+            }}
+          >
+            🎲 {rerolling ? "REROLLING..." : "REROLL"}
+            <span
               style={{
-                fontSize: "0.8rem",
-                padding: "12px 20px",
-                whiteSpace: "nowrap",
-                opacity: rerollsLeft <= 0 ? 0.4 : 1,
-                cursor: rerollDisabled ? "not-allowed" : "pointer",
+                fontSize: "0.5rem",
+                color: "var(--nes-yellow)",
+                marginLeft: 8,
               }}
             >
-              🎲 {rerolling ? "REROLLING..." : "REROLL"}
-              <span
-                style={{
-                  fontSize: "0.5rem",
-                  color: "var(--nes-yellow)",
-                  marginLeft: 8,
-                }}
-              >
-                {rerollsLeft}x LEFT
-              </span>
-            </button>
-          )}
+              {rerollsLeft}x LEFT
+            </span>
+          </button>
           <button
             className="pixel-btn pixel-btn--green"
             onClick={() => void handleStart()}
