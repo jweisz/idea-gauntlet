@@ -58,26 +58,51 @@ export function useGameName(): string {
 }
 
 // The gauntlet's shape lives in the backend's config.toml and is served via
-// /api/config. These selectors are the only way the UI learns it — the numbers
-// are deliberately not duplicated here. AuthGate blocks every screen until
-// config resolves, so the pre-load fallbacks below are unreachable in practice;
-// they exist so a caller can't crash on a null config.
+// /api/config; these selectors are the only way the UI learns it, so the real
+// numbers are deliberately not duplicated here.
+//
+// The fallbacks below describe the game as it was before length became
+// variable: 8 critics, fought in any order. They matter during a rolling deploy
+// (or against a backend that hasn't picked up the change yet), where the keys
+// are simply absent. Degrading to the old game is both playable and correct —
+// an older backend only knows how to create 8-boss free-choice runs — whereas
+// falling back to 0 bricked the challenger screen on a spinner that never
+// resolved, because nothing ever fetched.
+const LEGACY_BOSSES = 8;
+const LEGACY_PROGRESSION: Progression = "free";
 
-/** How many critics a gauntlet at this difficulty has. 0 before config loads. */
+let warned = false;
+function warnOnce(): void {
+  if (warned) return;
+  warned = true;
+  console.warn(
+    "[config] /api/config has no difficulty_bosses/difficulty_progression — " +
+      "falling back to a legacy 8-boss free-choice gauntlet. The backend is " +
+      "probably older than the frontend.",
+  );
+}
+
+/** How many critics a gauntlet at this difficulty has. */
 export function useBossCount(difficulty: Difficulty): number {
-  return useConfigStore((s) => s.config?.difficulty_bosses?.[difficulty]) ?? 0;
+  const count = useConfigStore(
+    (s) => s.config?.difficulty_bosses?.[difficulty],
+  );
+  const loaded = useConfigStore((s) => !!s.config);
+  if (loaded && count === undefined) warnOnce();
+  return count ?? LEGACY_BOSSES;
 }
 
 /** The longest gauntlet on offer — how many challengers to fetch up front. */
 export function useMaxBossCount(): number {
   const counts = useConfigStore((s) => s.config?.difficulty_bosses);
-  return counts ? Math.max(...Object.values(counts)) : 0;
+  const values = counts ? Object.values(counts) : [];
+  return values.length ? Math.max(...values) : LEGACY_BOSSES;
 }
 
 /** Whether this difficulty is fought in order or lets you pick any boss. */
 export function useProgression(difficulty: Difficulty): Progression {
   return (
     useConfigStore((s) => s.config?.difficulty_progression?.[difficulty]) ??
-    "linear"
+    LEGACY_PROGRESSION
   );
 }

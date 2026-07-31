@@ -241,7 +241,10 @@ export interface SessionOut {
   // Server-derived, not stored: games created before gauntlet length was
   // variable are 8-boss free-choice runs whatever their difficulty says, and
   // keep playing that way. Never re-derive this on the client.
-  progression: Progression;
+  //
+  // Optional because a backend older than this frontend won't send it at all.
+  // Treat absent as "free" — see StageRouter.
+  progression?: Progression;
 }
 
 export interface SessionListItem {

@@ -87,6 +87,19 @@ describe("StageRouter", () => {
     expect(screen.queryByText("THE GAUNTLET")).toBeNull();
   });
 
+  it("falls back to the grid when the backend sends no progression", async () => {
+    // A backend older than this frontend omits the field entirely. Every game
+    // it knows about is an 8-boss free-choice run, so the grid is right;
+    // defaulting to the path would impose an order on games that never had one.
+    const legacy = { ...session("free", 8) };
+    delete (legacy as { progression?: string }).progression;
+
+    renderWith(legacy);
+
+    expect(await screen.findByText("STAGE SELECT")).toBeTruthy();
+    expect(screen.queryByText("THE GAUNTLET")).toBeNull();
+  });
+
   it("refetches on mount so boss statuses are fresh after a battle", async () => {
     renderWith(session("linear", 3));
 

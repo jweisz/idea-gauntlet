@@ -35,9 +35,14 @@ export default function StageRouter() {
 
   if (!session) return null;
 
-  return session.progression === "free" ? (
-    <StageSelectScreen session={session} bypassedRef={bypassedRef} />
-  ) : (
+  // Tested for "linear" rather than "free" so that a *missing* progression —
+  // a backend older than this frontend — falls back to the grid. Every session
+  // such a backend can have created is an 8-boss free-choice run, so the grid
+  // is the correct default; defaulting to the path would drop those games into
+  // a linear order over bosses they may already have beaten out of order.
+  return session.progression === "linear" ? (
     <GauntletPathScreen session={session} bypassedRef={bypassedRef} />
+  ) : (
+    <StageSelectScreen session={session} bypassedRef={bypassedRef} />
   );
 }
