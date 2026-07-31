@@ -107,6 +107,23 @@ describe("ChallengerSelectScreen", () => {
     expect(screen.queryByTestId("challenger-lineup")).toBeNull();
   });
 
+  it("still loads challengers when the backend sends no gauntlet config", async () => {
+    // Regression: with the keys absent the max boss count was 0, so the mount
+    // effect returned before fetching and the screen sat on "LOADING AGENTS..."
+    // forever — with nothing in the server logs, because no request was ever
+    // made. It must fall back to the legacy 8-boss free-choice run instead.
+    const { difficulty_bosses, difficulty_progression, ...legacy } = CONFIG;
+    void difficulty_bosses;
+    void difficulty_progression;
+    useConfigStore.setState({ config: legacy as never });
+
+    renderScreen();
+
+    await waitFor(() => expect(randomAgents).toHaveBeenCalledWith(8));
+    await waitFor(() => expect(tileNames().length).toBe(8));
+    expect(screen.queryByText("LOADING AGENTS...")).toBeNull();
+  });
+
   it("keeps one reroll button in the action row on every tier", async () => {
     // It used to move to the grid's centre tile on free choice, so switching
     // difficulty read as the button teleporting.

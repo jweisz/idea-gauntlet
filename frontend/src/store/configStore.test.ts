@@ -73,9 +73,27 @@ describe("gauntlet shape selectors", () => {
     );
   });
 
-  it("returns harmless values before config loads", () => {
-    expect(renderHook(() => useBossCount("normal")).result.current).toBe(0);
-    expect(renderHook(() => useMaxBossCount()).result.current).toBe(0);
+  it("falls back to the legacy gauntlet when the backend is older", () => {
+    // A backend from before this feature returns a config with neither key.
+    // The screens must still be playable — an 8-boss free-choice run is
+    // exactly what such a backend can create. Returning 0 here previously
+    // left the challenger screen spinning forever with no request ever sent.
+    const { difficulty_bosses, difficulty_progression, ...legacy } =
+      SERVER_CONFIG;
+    void difficulty_bosses;
+    void difficulty_progression;
+    useConfigStore.setState({ config: legacy as never });
+
+    expect(renderHook(() => useBossCount("normal")).result.current).toBe(8);
+    expect(renderHook(() => useMaxBossCount()).result.current).toBe(8);
+    expect(renderHook(() => useProgression("normal")).result.current).toBe(
+      "free",
+    );
+  });
+
+  it("falls back to the legacy gauntlet before config loads", () => {
+    expect(renderHook(() => useBossCount("normal")).result.current).toBe(8);
+    expect(renderHook(() => useMaxBossCount()).result.current).toBe(8);
   });
 });
 
