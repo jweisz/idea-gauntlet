@@ -26,6 +26,13 @@ if DATABASE_URL.startswith("sqlite"):
     # threads. timeout: how long a connection waits on a locked DB before
     # raising (see the busy_timeout PRAGMA below, which is the effective knob).
     engine_kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
+else:
+    # Managed Postgres (e.g. Neon) suspends idle compute and drops its
+    # connections, so a pooled connection can be dead by the next request.
+    # pre_ping checks each one on checkout; recycle retires them before the
+    # provider's idle timeout would.
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 300
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
